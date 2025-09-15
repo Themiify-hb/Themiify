@@ -36,19 +36,25 @@ void InstalledThemesScreen::Draw()
                 Gfx::Print(-4, 17, "                             B - Back");
             }
             else {
+                mCurrentTheme = Installer::GetCurrentTheme();
                 Gfx::Print(-4, 2, "Iterating through\n%s...", THEMIIFY_INSTALLED_THEMES);
             }
 
             break;
         case MENU_STATE_DEFAULT: {
             Gfx::SetBackgroundColour(BACKGROUND_COLOUR);
-            Gfx::Print(-3, 2, "Select a theme to view information about it or uninstall it");
+            Gfx::Print(-3, 2, "Select a theme to it set as your current theme, uninstall it\nor view information about it.");
 
-            int yIni = 4;
+            int yIni = 5;
             for (std::size_t i = 0; i < 12 && (mScrollOffset + i) < mFileList.size(); i++) {
                 int y = yIni + i;
                 std::size_t themeIdx = mScrollOffset + i;
-                Gfx::Print(-4, y, (mThemeIdx == static_cast<int>(themeIdx)) ? "> %s" : "  %s", mThemeNames.at(themeIdx).c_str());
+                if (mThemeIDs.at(themeIdx) == mCurrentTheme) {
+                    Gfx::Print(-4, y, (mThemeIdx == static_cast<int>(themeIdx)) ? "> %s (Current Theme)" : "  %s (Current Theme)", mThemeNames.at(themeIdx).c_str());
+                }
+                else {
+                    Gfx::Print(-4, y, (mThemeIdx == static_cast<int>(themeIdx)) ? "> %s" : "  %s", mThemeNames.at(themeIdx).c_str());
+                }
             }
 
             Gfx::Print(-4, 17, "A - Select                D-Pad/Stick - Move               B - Back");
@@ -59,13 +65,18 @@ void InstalledThemesScreen::Draw()
             // TODO: Figure out the "select default theme" appraoch we're gonna do
             Gfx::Print(-4, 2, "Theme Details:");
             Gfx::Print(-3, 4, "Theme Name: %s\nTheme Author: %s\nTheme Region: %s\nTheme ID: %s\n\nTheme was installed to:\n%s", mSelectedThemeData.themeName.c_str(), mSelectedThemeData.themeAuthor.c_str(), RegionToString(mSelectedThemeData.themeRegion).c_str(), mSelectedThemeData.themeID.c_str(), mSelectedThemeData.installedThemePath.c_str());
-            Gfx::Print(-4, 17, "          X - Uninstall Theme                    B - Back");
+            if (mSelectedThemeData.themeID == mCurrentTheme) {
+                Gfx::Print(-3, 12, "This Theme has been set as the current theme.");
+                Gfx::Print(-4, 17, "          X - Uninstall Theme                    B - Back");
+            }
+            else {
+                Gfx::Print(-4, 17, "X - Uninstall Theme       Y - Set as Current Theme       B - Back");
+            }
 
             break;
         case MENU_STATE_DELETE_THEME_PROMPT:
             Gfx::SetBackgroundColour(BACKGROUND_WARNING_COLOUR);
-
-            Gfx::Print(-4, 2, "Warning!\n\nProceeding will delete the theme:\n%s\nfrom your SD Card.\n\nThis includes both its SDCafiine modpack, located at:\n%s\nand any metadata saved by Themiify.\n\nWould you like to proceed with the uninstallation?", mSelectedThemeData.themeName.c_str(), mSelectedThemeData.installedThemePath.c_str());
+            Gfx::Print(-4, 2, "Warning!\n\nProceeding will delete the theme:\n%s\nfrom your SD Card.\n\nThis includes both its theme data, located at:\n%s\nand any metadata saved by Themiify.\n\nWould you like to proceed with the uninstallation?", mSelectedThemeData.themeName.c_str(), mSelectedThemeData.installedThemePath.c_str());
             Gfx::Print(-4, 17, "          A - Uninstall Theme                    B - Back");
 
             break;
@@ -122,6 +133,7 @@ bool InstalledThemesScreen::Update(VPADStatus status)
                 else {
                     mThemeDataList.push_back(themeData);
                     mThemeNames.push_back(themeData.themeName);
+                    mThemeIDs.push_back(themeData.themeID);
                     ++listIt;
                 }  
             }
@@ -178,6 +190,10 @@ bool InstalledThemesScreen::Update(VPADStatus status)
             }
             else if (status.trigger & VPAD_BUTTON_X) {
                 mMenuState = MENU_STATE_DELETE_THEME_PROMPT;
+            }
+            else if ((mSelectedThemeData.themeID != mCurrentTheme) && (status.trigger & VPAD_BUTTON_Y)) {
+                Installer::SetCurrentTheme(mSelectedThemeData.themeID);
+                mMenuState = MENU_STATE_DIR_ITERATOR;
             }
 
             break;

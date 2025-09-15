@@ -49,17 +49,17 @@ void InstallThemeScreen::Draw()
         case MENU_STATE_INSTALL_THEME_PROMPT:
             if (!mMenuStateFailure & !mThemeRegionMismatch & !IsThemeAlreadyInstalled()) {
                 Gfx::SetBackgroundColour(BACKGROUND_COLOUR);
-                Gfx::Print(-4, 2, "You will now install: %s\nas an SDCafiine modpack.\n\nWould you like to continue with the installation?", mThemeName.c_str());
+                Gfx::Print(-4, 2, "You will now install: %s by %s\n\nWould you like to continue with the installation?", mThemeName.c_str(), mThemeAuthor.c_str());
                 Gfx::Print(-4, 17, "            A - Yes                              B - No");
             }
             else if (IsThemeAlreadyInstalled()) {
                 Gfx::SetBackgroundColour(BACKGROUND_WARNING_COLOUR);
-                Gfx::Print(-4, 2, "Warning!\n\nThis theme is already installed as the modpack:\n%s\n\nWould you like to reinstall it?", mThemeID.c_str());
+                Gfx::Print(-4, 2, "Warning!\n\nThis theme has already been installed.\n\nWould you like to reinstall it?", mThemeID.c_str());
                 Gfx::Print(-4, 17, "            A - Yes                              B - No");
             }            
             else if (mThemeRegionMismatch) {
                 Gfx::SetBackgroundColour(BACKGROUND_WARNING_COLOUR);
-                Gfx::Print(-4, 2, "Warning!\n\nThis theme's region (%s) does not match your\nWii U Menu's region (%s).\n\nIf this theme contains any text patches for specific languages,\nthe theme will fail to install.\n\nWould you like to continue with the installation of:\n%s?", RegionToString(mThemeRegion).c_str(), RegionToString(mSystemRegion).c_str(), mThemeName.c_str());
+                Gfx::Print(-4, 2, "Warning!\n\nThis theme's region (%s) does not match your\nWii U Menu's region (%s).\n\nIf this theme contains any text patches for specific languages,\nthey won't show up.\n\nWould you like to continue with the installation of:\n%s?", RegionToString(mThemeRegion).c_str(), RegionToString(mSystemRegion).c_str(), mThemeName.c_str());
                 Gfx::Print(-4, 17, "            A - Yes                              B - No");
             }
             else {
@@ -74,7 +74,7 @@ void InstallThemeScreen::Draw()
             break;
         case MENU_STATE_THEME_INSTALL_SUCCESS:
             Gfx::SetBackgroundColour(BACKGROUND_SUCCESS_COLOUR);
-            Gfx::Print(-4, 2, "Successfully installed %s!\n\nModpack name: %s\n\nTo save storage space, it is reccomended to delete\nthe original theme file: %s\n\nWould you like to delete the file?", mThemeName.c_str(), mThemeID.c_str(), mSelectedPathShort.c_str());
+            Gfx::Print(-4, 2, "Successfully installed %s!\n\nTo save storage space, it is reccomended to delete\nthe original theme file: %s\n\nWould you like to delete the file?", mThemeName.c_str(), mSelectedPathShort.c_str());
             Gfx::Print(-4, 17, "          X - Delete                              B - No");
             break;
         case MENU_STATE_THEME_INSTALL_ERROR:
