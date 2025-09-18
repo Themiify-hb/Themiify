@@ -7,14 +7,13 @@
 #include <zip.h>
 #include <nlohmann/json.hpp>
 #include <hips.hpp>
+#include <mocha/mocha.h>
 
 #include <whb/log.h>
 #include <sysapp/title.h>
 
 #include "installer.h"
 #include "utils.h"
-
-#define SDCAFIINE_ROOT "fs:/vol/external01/wiiu/sdcafiine"
 
 namespace json = nlohmann;
 
@@ -39,22 +38,19 @@ namespace Installer {
         return cRegion;
     } 
 
-    std::pair<std::string, std::string> GetMenuStrings() {
+    std::string GetMenuContentPath() {
         uint64_t menuTitleID = _SYSGetSystemApplicationTitleId(SYSTEM_APP_ID_WII_U_MENU);
 
         uint32_t menuIDParentDir = (uint32_t)(menuTitleID >> 32);
         uint32_t menuIDChildDir = (uint32_t)menuTitleID;
 
-        char menuIDStr[17];
         char splitMenuID[18];
         
-        snprintf(menuIDStr, sizeof(menuIDStr), "%016llx", menuTitleID);
         snprintf(splitMenuID, sizeof(splitMenuID), "%08x/%08x", menuIDParentDir, menuIDChildDir);
 
         std::string menuContentPath = "storage_mlc:/sys/title/" + std::string(splitMenuID) + "/content/";
-        std::string sdcafiineMenuPath = "fs:/vol/external01/wiiu/sdcafiine/" + std::string(menuIDStr) + "/";
 
-        return {menuContentPath, sdcafiineMenuPath};
+        return menuContentPath;
     }
 
     void CreateCacheFile(std::FILE *sourceFile, std::string outputPath) {
@@ -111,7 +107,6 @@ namespace Installer {
         }
 
         zip_stat_t metadataStatData;
-        
         if ((zip_stat(themeArchive, "metadata.json", 0, &metadataStatData)) != 0) {
             zip_error_init_with_code(&error, err);
 
@@ -189,7 +184,8 @@ namespace Installer {
     bool InstallTheme(std::string themePath, theme_data themeData) {
         bool themeInstallSuccess = false;
         
-        auto [menuContentPath, sdcafiineMenuPath] = GetMenuStrings();
+        std::string menuContentPath = GetMenuContentPath();
+
         
         zip_t *themeArchive;
         zip_error_t error;
@@ -208,9 +204,7 @@ namespace Installer {
         zip_file_t *themeMetadataFile; 
         if (!(themeMetadataFile = zip_fopen(themeArchive, "metadata.json", ZIP_RDONLY))) {
             zip_error_init_with_code(&error, err);
-
             WHBLogPrintf("Cannot open theme metadata. Error Code: %s", zip_error_strerror(&error));
-
             zip_error_fini(&error);  
 
             themeInstallSuccess = false;          
@@ -222,9 +216,8 @@ namespace Installer {
             zip_error_init_with_code(&error, err);
 
             WHBLogPrintf("Cannot stat theme metadata! Error Code: %s", zip_error_strerror(&error));
-
             zip_error_fini(&error);   
-
+          
             themeInstallSuccess = false;                     
         }
         
@@ -239,7 +232,7 @@ namespace Installer {
 
         WHBLogPrintf("Installing %s...", themeData.themeName.c_str());
 
-        std::string modpackPath = sdcafiineMenuPath + themeData.themeID;
+        std::string modpackPath = std::string(THEMES_ROOT) + "/" + themeData.themeID;
         WHBLogPrintf("Installing theme to: %s", modpackPath.c_str());
 
         for (auto& [patchFilename, menuFilepath] : themeMetadata->at("Patches").items()) {
@@ -282,8 +275,8 @@ namespace Installer {
 
                 if (!(inputFile = std::fopen(menuPath.c_str(), "rb"))) {
                     WHBLogPrintf("Could not open source file for %s", std::string(patchFilename).c_str());
-                    themeInstallSuccess = false;  
-                    break;
+                    //themeInstallSuccess = false;  
+                    //break;
                 } else {
                     CreateCacheFile(inputFile, cachePath.c_str());
                 }
@@ -354,6 +347,8 @@ namespace Installer {
             }
 
             installedThemeJson.clear();
+
+            SetCurrentTheme(themeData.themeID);
         }
         else {
             // In case the theme was somehow already installed
@@ -373,5 +368,61 @@ namespace Installer {
         }
 
         return true;
+    }
+
+    std::string GetStyleMiiUConfigPath() {
+        char environmentPathBuffer[0x100];
+
+        MochaUtilsStatus res;
+        if ((res = Mocha_GetEnvironmentPath(environmentPathBuffer, sizeof(environmentPathBuffer))) != MOCHA_RESULT_SUCCESS) {
+            WHBLogPrintf("Failed to get environment path. Are you running on Aroma? Result: %s", Mocha_GetStatusStr(res));
+            return "";
+        }
+
+        std::string styleMiiUConfigPath = std::string(environmentPathBuffer) + "/plugins/config/style-mii-u.json";
+
+        return styleMiiUConfigPath;
+    }
+
+    bool SetCurrentTheme(std::string themeID) {
+        std::string styleMiiUConfigPath = GetStyleMiiUConfigPath();
+        
+        std::ifstream configFile(styleMiiUConfigPath);
+        if (!configFile.is_open()) {
+            WHBLogPrintf("Failed to open config file: %s", styleMiiUConfigPath.c_str());
+            return false;
+        }
+        json::json configJson = json::json::parse(configFile);
+
+        configFile.close();
+
+        configJson["storageitems"]["enabledThemes"] = themeID;
+
+        std::ofstream outFile(styleMiiUConfigPath, std::ios::trunc);
+        if (!outFile.is_open()) {
+            WHBLogPrintf("Something no bueno :( aaa %s", styleMiiUConfigPath.c_str());
+        }
+        outFile << configJson.dump(4);
+        outFile.close();
+        WHBLogPrintf("Succesfully set %s as current StyleMiiU theme!", themeID.c_str());
+
+        return true;
+    }
+
+    std::string GetCurrentTheme() {
+        std::string styleMiiUConfigPath = GetStyleMiiUConfigPath();
+        
+        std::ifstream configFile(styleMiiUConfigPath);
+        if (!configFile.is_open()) {
+            WHBLogPrintf("Failed to open config file: %s", styleMiiUConfigPath.c_str());
+            return "";
+        }
+        json::json configJson = json::json::parse(configFile);
+
+        configFile.close();
+
+        std::string themeID = configJson["storageitems"]["enabledThemes"];
+
+        return themeID;
     }
 }

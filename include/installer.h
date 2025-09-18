@@ -30,4 +30,6 @@ namespace Installer {
     int GetInstalledThemeMetadata(std::string installedThemeJsonPath, installed_theme_data *themeData);
     bool InstallTheme(std::string themePath, theme_data themeData);
     bool DeleteTheme(std::string modpackPath, std::string installPath);
+    bool SetCurrentTheme(std::string themeID);
+    std::string GetCurrentTheme();
 }

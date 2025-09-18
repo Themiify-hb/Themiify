@@ -30,10 +30,12 @@ private:
 
     bool mMenuStateFailure, mNoInstalledThemesFound;
 
-    std::vector<std::string> mFileList, mThemeNames;
+    std::vector<std::string> mFileList, mThemeNames, mThemeIDs;
     std::vector<Installer::installed_theme_data> mThemeDataList;
         
     int mThemeIdx, mScrollOffset;
+
+    std::string mCurrentTheme;
 
     Installer::installed_theme_data mSelectedThemeData;
 };

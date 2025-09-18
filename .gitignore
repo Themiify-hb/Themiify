@@ -20,3 +20,4 @@ testing_files
 *.lst
 VSCode-Config.zip
 workspace.code-workspace
+.DS_Store
