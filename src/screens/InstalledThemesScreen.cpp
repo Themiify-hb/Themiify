@@ -22,7 +22,6 @@ void InstalledThemesScreen::Draw()
 {
     switch (mMenuState) {
         case MENU_STATE_INIT:
-            std::filesystem::create_directories(THEMIIFY_INSTALLED_THEMES);
             break;
         case MENU_STATE_DIR_ITERATOR:
             if (mNoInstalledThemesFound) {
@@ -36,7 +35,6 @@ void InstalledThemesScreen::Draw()
                 Gfx::Print(-4, 17, "                             B - Back");
             }
             else {
-                mCurrentTheme = Installer::GetCurrentTheme();
                 Gfx::Print(-4, 2, "Iterating through\n%s...", THEMIIFY_INSTALLED_THEMES);
             }
 
@@ -107,6 +105,7 @@ bool InstalledThemesScreen::Update(VPADStatus status)
     
     switch (mMenuState) {
         case MENU_STATE_INIT:
+            std::filesystem::create_directories(THEMIIFY_INSTALLED_THEMES);
             mNoInstalledThemesFound = false;
             mMenuState = MENU_STATE_DIR_ITERATOR;
             break;
@@ -143,6 +142,7 @@ bool InstalledThemesScreen::Update(VPADStatus status)
             }
 
             if (!mMenuStateFailure & !mNoInstalledThemesFound) {
+                mCurrentTheme = Installer::GetCurrentTheme();
                 mMenuState = MENU_STATE_DEFAULT;
                 break;
             }

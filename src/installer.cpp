@@ -11,6 +11,7 @@
 
 #include <whb/log.h>
 #include <sysapp/title.h>
+#include <coreinit/foreground.h>
 
 #include "installer.h"
 #include "utils.h"
@@ -53,31 +54,36 @@ namespace Installer {
         return menuContentPath;
     }
 
-    void CreateCacheFile(std::FILE *sourceFile, std::string outputPath) {
-        std::FILE *outputFile = std::fopen(outputPath.c_str(), "wb");
-
-        std::fseek(sourceFile, 0, SEEK_END);
-        std::size_t sourceSize = std::ftell(sourceFile);
-        std::rewind(sourceFile);
+    void CreateCacheFile(std::ifstream &sourceFile, std::string outputPath) {
+        if (!sourceFile.is_open()) {
+            WHBLogPrintf("Invalid or unopened source file");
+            return;
+        }
+        
+        // Getting the size instantly because sourceFile was opened with std::ios::ate
+        std::size_t sourceSize = static_cast<std::size_t>(sourceFile.tellg());
+        sourceFile.seekg(0, std::ios::beg);
 
         std::vector<unsigned char> buffer(sourceSize);
-        std::size_t bytesRead, bytesWritten;
-
-        while ((bytesRead = std::fread(buffer.data(), 1, sourceSize, sourceFile)) > 0) {
-            bytesWritten = std::fwrite(buffer.data(), 1, bytesRead, outputFile);
-
-            if (bytesRead != bytesRead) {
-                WHBLogPrintf("Error writing cache file!");
-                std::fclose(outputFile);
-                return;
-            }
+        sourceFile.read(reinterpret_cast<char*>(buffer.data()), sourceSize);
+        if (!sourceFile) {
+            WHBLogPrintf("Error reading source file to create cache file.");
+            return;
         }
 
-        std::fclose(outputFile);
+        std::ofstream outputFile(outputPath, std::ios::binary | std::ios::trunc);
+        if (!outputFile.is_open()) {
+            WHBLogPrintf("Failed to open output file for writing: %s", outputPath.c_str());
+            return;
+        }
+
+        outputFile.write(reinterpret_cast<const char*>(buffer.data()), buffer.size());
+        if (!outputFile) {
+            WHBLogPrintf("Error writing cache file to %s", outputPath.c_str());
+            return;
+        }
 
         WHBLogPrintf("Successfully cached file to: %s", outputPath.c_str());
-
-        return;
     }
 
     int GetThemeMetadata(std::string themePath, theme_data *themeData) {
@@ -151,42 +157,33 @@ namespace Installer {
     }
 
     int GetInstalledThemeMetadata(std::string installedThemeJsonPath, installed_theme_data *themeData) {
-        std::FILE *installedThemeJson;
+        std::ifstream installedThemeJson(installedThemeJsonPath);
 
-        if (!(installedThemeJson = std::fopen(installedThemeJsonPath.c_str(), "rb"))) {
+        if (!installedThemeJson.is_open()) {
             WHBLogPrintf("Cannot open installed theme's json file.");
 
             return 0;
         }
-
-        std::fseek(installedThemeJson, 0, SEEK_END);
-        std::size_t jsonSize = std::ftell(installedThemeJson);
-        std::rewind(installedThemeJson);
         
-        std::string buffer(jsonSize, '\0');
-
-        std::fread(&buffer[0], 1, jsonSize, installedThemeJson);
-        std::fclose(installedThemeJson);
-        
-        std::unique_ptr<json::json> themeMetadata = std::make_unique<json::json>(json::json::parse(buffer));
+        std::unique_ptr<json::json> installedThemeMetadata = std::make_unique<json::json>(json::json::parse(installedThemeJson));
  
-        themeData->themeID = std::string(themeMetadata->at("ThemeData").at("themeID"));
-        themeData->themeName = std::string(themeMetadata->at("ThemeData").at("themeName"));
-        themeData->themeAuthor = std::string(themeMetadata->at("ThemeData").at("themeAuthor"));
-        themeData->themeRegion = std::string(themeMetadata->at("ThemeData").at("themeRegion"));
-        themeData->installedThemePath = std::string(themeMetadata->at("ThemeData").at("themeInstallPath"));
+        themeData->themeID = std::string(installedThemeMetadata->at("ThemeData").at("themeID"));
+        themeData->themeName = std::string(installedThemeMetadata->at("ThemeData").at("themeName"));
+        themeData->themeAuthor = std::string(installedThemeMetadata->at("ThemeData").at("themeAuthor"));
+        themeData->themeRegion = std::string(installedThemeMetadata->at("ThemeData").at("themeRegion"));
+        themeData->installedThemePath = std::string(installedThemeMetadata->at("ThemeData").at("themeInstallPath"));
 
-        themeMetadata->clear();
+        installedThemeMetadata->clear();
 
         return 1;
     }
 
     bool InstallTheme(std::string themePath, theme_data themeData) {
         bool themeInstallSuccess = false;
+        OSEnableHomeButtonMenu(FALSE);
         
         std::string menuContentPath = GetMenuContentPath();
 
-        
         zip_t *themeArchive;
         zip_error_t error;
         int err;
@@ -197,17 +194,13 @@ namespace Installer {
             WHBLogPrintf("Cannot open theme archive. Error Code: %s", zip_error_strerror(&error));
 
             zip_error_fini(&error);
-
-            themeInstallSuccess = false;
         }
 
         zip_file_t *themeMetadataFile; 
         if (!(themeMetadataFile = zip_fopen(themeArchive, "metadata.json", ZIP_RDONLY))) {
             zip_error_init_with_code(&error, err);
             WHBLogPrintf("Cannot open theme metadata. Error Code: %s", zip_error_strerror(&error));
-            zip_error_fini(&error);  
-
-            themeInstallSuccess = false;          
+            zip_error_fini(&error);        
         }
 
         zip_stat_t metadataStatData;
@@ -216,9 +209,7 @@ namespace Installer {
             zip_error_init_with_code(&error, err);
 
             WHBLogPrintf("Cannot stat theme metadata! Error Code: %s", zip_error_strerror(&error));
-            zip_error_fini(&error);   
-          
-            themeInstallSuccess = false;                     
+            zip_error_fini(&error);               
         }
         
         std::string buffer(metadataStatData.size, '\0');
@@ -268,26 +259,31 @@ namespace Installer {
             }
             std::size_t patchSize = patchStatData.size;
 
-            std::FILE *inputFile;
-            if (!(inputFile = std::fopen(cachePath.c_str(), "rb"))) {
-                WHBLogPrint("Cache does not exist");
-                WHBLogPrintf("Creating cache for %s", menuPath.c_str());
+            std::ifstream inputFile(cachePath, std::ios::binary | std::ios::ate);
+            if (!inputFile.is_open()) {
+                WHBLogPrintf("Cache does not exist, creating cache for %s", menuPath.c_str());
 
-                if (!(inputFile = std::fopen(menuPath.c_str(), "rb"))) {
-                    WHBLogPrintf("Could not open source file for %s", std::string(patchFilename).c_str());
-                    //themeInstallSuccess = false;  
-                    //break;
-                } else {
-                    CreateCacheFile(inputFile, cachePath.c_str());
+                inputFile.clear();
+                inputFile.open(menuPath, std::ios::binary | std::ios::ate);
+                if (!inputFile.is_open()) {
+                    WHBLogPrintf("Could not open source file for %s", patchFilename.c_str());
+
+                    inputFile.clear();
+                    /* The file doesn't exist but theme installation can still continue on.
+                    Unless something is seriously wrong, this will only occur if an out of region file
+                    (like a text replacement for a specific language) is what's being patched. */
+                    continue;
+                }
+                else {
+                    CreateCacheFile(inputFile, cachePath);
                 }
             }
             else {
                 WHBLogPrintf("Found %s in cache at %s", std::string(menuFilepath).c_str(), cachePath.c_str());
             }
 
-            std::fseek(inputFile, 0, SEEK_END);
-            std::size_t inputSize = std::ftell(inputFile);
-            std::rewind(inputFile);
+            std::size_t inputSize = static_cast<std::size_t>(inputFile.tellg());
+            inputFile.seekg(0, std::ios::beg);
 
             std::vector<uint8_t> patchData(patchSize);
             std::vector<uint8_t> inputData(inputSize);
@@ -295,15 +291,16 @@ namespace Installer {
             zip_fread(patchFile, patchData.data(), patchSize);
             zip_fclose(patchFile);
 
-            std::fread(inputData.data(), 1, inputSize, inputFile);
-            std::fclose(inputFile);
+            inputFile.read(reinterpret_cast<char*>(inputData.data()), inputSize);
+            inputFile.close();
 
             auto [bytes, result] = Hips::patch(inputData.data(), inputSize, patchData.data(), patchSize, Hips::PatchType::BPS);
             if (result == Hips::Result::Success) {
                 CreateParentDirectories(outputPath);
-                std::FILE *outputFile = std::fopen(outputPath.c_str(), "wb");
-                std::fwrite(bytes.data(), 1, bytes.size(), outputFile);
-                std::fclose(outputFile);
+
+                std::ofstream outputFile(outputPath, std::ios::binary);
+                outputFile.write(reinterpret_cast<char*>(bytes.data()), bytes.size());
+                outputFile.close();
 
                 themeInstallSuccess = true;
 
@@ -356,6 +353,7 @@ namespace Installer {
             DeleteTheme(modpackPath, installPath);
         }
 
+        OSEnableHomeButtonMenu(TRUE);
         return themeInstallSuccess;
     }
 
@@ -400,7 +398,8 @@ namespace Installer {
 
         std::ofstream outFile(styleMiiUConfigPath, std::ios::trunc);
         if (!outFile.is_open()) {
-            WHBLogPrintf("Something no bueno :( aaa %s", styleMiiUConfigPath.c_str());
+            WHBLogPrintf("Failed to open for write: %s", styleMiiUConfigPath.c_str());
+            return false;
         }
         outFile << configJson.dump(4);
         outFile.close();
