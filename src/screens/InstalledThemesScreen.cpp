@@ -47,7 +47,7 @@ void InstalledThemesScreen::Draw()
             for (std::size_t i = 0; i < 12 && (mScrollOffset + i) < mFileList.size(); i++) {
                 int y = yIni + i;
                 std::size_t themeIdx = mScrollOffset + i;
-                if (mThemeIDs.at(themeIdx) == mCurrentTheme) {
+                if (mThemeFullNames.at(themeIdx) == mCurrentTheme) {
                     Gfx::Print(-4, y, (mThemeIdx == static_cast<int>(themeIdx)) ? "> %s (Current Theme)" : "  %s (Current Theme)", mThemeNames.at(themeIdx).c_str());
                 }
                 else {
@@ -62,8 +62,8 @@ void InstalledThemesScreen::Draw()
             Gfx::SetBackgroundColour(BACKGROUND_COLOUR);
             // TODO: Figure out the "select default theme" appraoch we're gonna do
             Gfx::Print(-4, 2, "Theme Details:");
-            Gfx::Print(-3, 4, "Theme Name: %s\nTheme Author: %s\nTheme Region: %s\nTheme ID: %s\n\nTheme was installed to:\n%s", mSelectedThemeData.themeName.c_str(), mSelectedThemeData.themeAuthor.c_str(), RegionToString(mSelectedThemeData.themeRegion).c_str(), mSelectedThemeData.themeID.c_str(), mSelectedThemeData.installedThemePath.c_str());
-            if (mSelectedThemeData.themeID == mCurrentTheme) {
+            Gfx::Print(-3, 4, "Theme Name: %s\nTheme Author: %s\nTheme Version: %s\nTheme ID: %s\n\nTheme was installed to:\n%s", mSelectedThemeData.themeName.c_str(), mSelectedThemeData.themeAuthor.c_str(), mSelectedThemeData.themeVersion.c_str(), mSelectedThemeData.themeID.c_str(), mSelectedThemeData.installedThemePath.c_str());
+            if (std::string(mSelectedThemeData.themeName + " (" + mSelectedThemeData.themeIDPath + ")") == mCurrentTheme) {
                 Gfx::Print(-3, 12, "This Theme has been set as the current theme.");
                 Gfx::Print(-4, 17, "          X - Uninstall Theme                    B - Back");
             }
@@ -132,7 +132,7 @@ bool InstalledThemesScreen::Update(VPADStatus status)
                 else {
                     mThemeDataList.push_back(themeData);
                     mThemeNames.push_back(themeData.themeName);
-                    mThemeIDs.push_back(themeData.themeID);
+                    mThemeFullNames.push_back(std::string(themeData.themeName + " (" + themeData.themeIDPath + ")"));
                     ++listIt;
                 }  
             }
@@ -191,8 +191,8 @@ bool InstalledThemesScreen::Update(VPADStatus status)
             else if (status.trigger & VPAD_BUTTON_X) {
                 mMenuState = MENU_STATE_DELETE_THEME_PROMPT;
             }
-            else if ((mSelectedThemeData.themeID != mCurrentTheme) && (status.trigger & VPAD_BUTTON_Y)) {
-                Installer::SetCurrentTheme(mSelectedThemeData.themeID);
+            else if ((std::string(mSelectedThemeData.themeName + " (" + mSelectedThemeData.themeIDPath + ")") != mCurrentTheme) && (status.trigger & VPAD_BUTTON_Y)) {
+                Installer::SetCurrentTheme(mSelectedThemeData.themeName, mSelectedThemeData.themeIDPath);
                 mMenuState = MENU_STATE_DIR_ITERATOR;
             }
 
@@ -228,24 +228,4 @@ bool InstalledThemesScreen::Update(VPADStatus status)
     }
 
     return true;
-}
-
-std::string InstalledThemesScreen::RegionToString(std::string region)
-{
-    std::string regionStr;
-
-    if (region.compare("JPN") == 0) {
-        regionStr = "Japan";
-    }
-    else if (region.compare("USA") == 0) {
-        regionStr = "America";
-    }
-    else if (region.compare("EUR") == 0) {
-        regionStr = "Europe";
-    }
-    else if (region.compare("UNIVERSAL") == 0) {
-        regionStr = "Universal";
-    }
-
-    return regionStr;
 }

@@ -1,4 +1,5 @@
 #include <filesystem>
+#include <cstdio>
 
 #include "gfx.h"
 #include "installer.h"
@@ -47,7 +48,7 @@ void InstallThemeScreen::Draw()
             break;
         }
         case MENU_STATE_INSTALL_THEME_PROMPT:
-            if (!mMenuStateFailure & !mThemeRegionMismatch & !IsThemeAlreadyInstalled()) {
+            if (!mMenuStateFailure & !IsThemeAlreadyInstalled()) {
                 Gfx::SetBackgroundColour(BACKGROUND_COLOUR);
                 Gfx::Print(-4, 2, "You will now install: %s by %s\n\nWould you like to continue with the installation?", mThemeName.c_str(), mThemeAuthor.c_str());
                 Gfx::Print(-4, 17, "            A - Yes                              B - No");
@@ -57,11 +58,6 @@ void InstallThemeScreen::Draw()
                 Gfx::Print(-4, 2, "Warning!\n\nThis theme has already been installed.\n\nWould you like to reinstall it?", mThemeID.c_str());
                 Gfx::Print(-4, 17, "            A - Yes                              B - No");
             }            
-            else if (mThemeRegionMismatch) {
-                Gfx::SetBackgroundColour(BACKGROUND_WARNING_COLOUR);
-                Gfx::Print(-4, 2, "Warning!\n\nThis theme's region (%s) does not match your\nWii U Menu's region (%s).\n\nIf this theme contains any text patches for specific languages,\nthey won't show up.\n\nWould you like to continue with the installation of:\n%s?", RegionToString(mThemeRegion).c_str(), RegionToString(mSystemRegion).c_str(), mThemeName.c_str());
-                Gfx::Print(-4, 17, "            A - Yes                              B - No");
-            }
             else {
                 Gfx::SetBackgroundColour(BACKGROUND_ERR_COLOUR);
                 Gfx::Print(-4, 2, "There was an error reading the metadata for:\n%s\n\nThere may be a problem with the theme...", mSelectedPathShort.c_str());
@@ -90,8 +86,6 @@ bool InstallThemeScreen::Update(VPADStatus status)
     switch(mMenuState) {
         case MENU_STATE_INIT:
             std::filesystem::create_directories(THEMES_ROOT);
-
-            mSystemRegion = Installer::GetSystemRegion();
 
             mMenuState = MENU_STATE_DIR_ITERATOR;
             break;
@@ -156,18 +150,13 @@ bool InstallThemeScreen::Update(VPADStatus status)
                 mMenuStateFailure = true;
             }
 
-            mThemeRegionMismatch = false;
-
             mThemeID = mThemeData.themeID;
+            mThemeIDPath = mThemeData.themeIDPath;
             mThemeName = mThemeData.themeName;
             mThemeAuthor = mThemeData.themeAuthor;
-            mThemeRegion = mThemeData.themeRegion;
-
-            if ((mThemeRegion != mSystemRegion) & (mThemeRegion != Installer::Region::UNIVERSAL)) {
-                mThemeRegionMismatch = true;
-            }
+            mThemeVersion = mThemeData.themeVersion;
             
-            if (!mMenuStateFailure | mThemeRegionMismatch | IsThemeAlreadyInstalled()) {
+            if (!mMenuStateFailure | IsThemeAlreadyInstalled()) {
                 if (status.trigger & VPAD_BUTTON_A) {
                     Gfx::SetBackgroundColour(BACKGROUND_COLOUR);
                     mMenuState = MENU_STATE_INSTALLING_THEME;
@@ -211,31 +200,9 @@ bool InstallThemeScreen::Update(VPADStatus status)
     return true;
 }
 
-std::string InstallThemeScreen::RegionToString(Installer::Region region)
-{
-    std::string regionStr;
-
-    switch (region) {
-        case Installer::Region::JPN:
-            regionStr = "Japan";
-            break;
-        case Installer::Region::USA:
-            regionStr = "America";
-            break;
-        case Installer::Region::EUR:
-            regionStr = "Europe";
-            break;
-        default:
-            regionStr = "";
-            break;
-    }
-
-    return regionStr;
-}
-
 bool InstallThemeScreen::IsThemeAlreadyInstalled()
 {
-    std::string themeInstallPath = std::string(THEMIIFY_INSTALLED_THEMES) + "/" + mThemeID + ".json";
+    std::string themeInstallPath = std::string(THEMIIFY_INSTALLED_THEMES) + "/" + mThemeIDPath + ".json";
     Installer::installed_theme_data themeData;
 
     if (std::filesystem::exists(themeInstallPath)) {

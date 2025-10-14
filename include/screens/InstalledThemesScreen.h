@@ -23,14 +23,12 @@ private:
         MENU_STATE_DELETE_THEME_PROMPT,
         MENU_STATE_THEME_DELETED
     };
-
-    std::string RegionToString(std::string region);
         
     MenuState mMenuState;
 
     bool mMenuStateFailure, mNoInstalledThemesFound;
 
-    std::vector<std::string> mFileList, mThemeNames, mThemeIDs;
+    std::vector<std::string> mFileList, mThemeNames, mThemeFullNames;
     std::vector<Installer::installed_theme_data> mThemeDataList;
         
     int mThemeIdx, mScrollOffset;

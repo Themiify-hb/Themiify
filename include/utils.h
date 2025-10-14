@@ -2,6 +2,7 @@
 
 #include <string>
 #include <filesystem>
+#include <algorithm>
 
 #include <whb/log.h>
 
@@ -14,6 +15,10 @@
 #define WII_U_MENU_JPN_TID (0x0005001010040000)
 #define WII_U_MENU_USA_TID (0x0005001010040100)
 #define WII_U_MENU_EUR_TID (0x0005001010040200)
+
+#define MEN_PATH "Common/Package/Men.pack"
+#define MEN2_PATH "Common/Package/Men2.pack"
+#define CAFE_BARISTA_MEN_PATH "Common/Sound/Men/cafe_barista_men.bfsar"
 
 #define BACKGROUND_COLOUR (0x00382AFF)
 #define BACKGROUND_ERR_COLOUR (0x750000FF)
@@ -55,3 +60,19 @@ inline void DeletePath(std::string inputPath) {
         return;
     }
 }
+
+inline std::string removeNonASCII(std::string s) {
+    std::string str = s;
+    str.erase(std::remove_if(str.begin(), str.end(), [](unsigned char c) { return c > 127; }), str.end());
+
+    return str;
+}
+
+inline bool isAscii(std::string str) {
+    for (unsigned char c : str) {
+        if (c > 0x7F)
+            return false; // Non-ASCII byte found
+    }
+    return true;    
+}
+

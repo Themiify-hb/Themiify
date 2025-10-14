@@ -3,6 +3,7 @@
 #include <memory>
 #include <vector>
 #include <fstream>
+#include <algorithm>
 
 #include <zip.h>
 #include <nlohmann/json.hpp>
@@ -19,25 +20,21 @@
 namespace json = nlohmann;
 
 namespace Installer {   
-    Region GetSystemRegion() {
-        uint64_t menuTitleID = _SYSGetSystemApplicationTitleId(SYSTEM_APP_ID_WII_U_MENU);
-
-        Region cRegion = USA; // doesn't matter what this defualts to but MURICAAAAAAA
-
-        switch (menuTitleID) {
-            case WII_U_MENU_JPN_TID:
-                cRegion = JPN;
-                break;
-            case WII_U_MENU_USA_TID:
-                cRegion = USA;
-                break;
-            case WII_U_MENU_EUR_TID:
-                cRegion = EUR;
-                break;
-        }
-
-        return cRegion;
-    } 
+    std::unordered_map<std::string, std::string> regionLangMap = {
+        {"UsEn", "UsEnglish/Message/AllMessage.szs"},
+        {"UsFr", "UsFrench/Message/AllMessage.szs"},
+        {"UsPt", "UsPortuguese/Message/AllMessage.szs"},
+        {"UsEs", "UsSpanish/Message/AllMessage.szs"},
+        {"EuNl", "EuDutch/Message/AllMessage.szs"},
+        {"EuEn", "EuEnglish/Message/AllMessage.szs"},
+        {"EuFr", "EuFrench/Message/AllMessage.szs"},
+        {"EuDe", "EuGerman/Message/AllMessage.szs"},
+        {"EuIt", "EuItalian/Message/AllMessage.szs"},
+        {"EuPt", "EuPortuguese/Message/AllMessage.szs"},
+        {"EuRu", "EuRussian/Message/AllMessage.szs"},
+        {"EuEs", "EuSpanish/Message/AllMessage.szs"},
+        {"JpJa", "JpJapanese/Message/AllMessage.szs"}
+    };
 
     std::string GetMenuContentPath() {
         uint64_t menuTitleID = _SYSGetSystemApplicationTitleId(SYSTEM_APP_ID_WII_U_MENU);
@@ -132,24 +129,15 @@ namespace Installer {
         
         std::unique_ptr<json::json> themeMetadata = std::make_unique<json::json>(json::json::parse(buffer));
 
-        std::string cRegion = std::string(themeMetadata->at("Metadata").at("themeRegion"));
-
-        if (cRegion.compare("JPN") == 0) {
-            themeData->themeRegion = JPN;
-        }
-        else if (cRegion.compare("USA") == 0) {
-            themeData->themeRegion = USA;
-        }
-        else if (cRegion.compare("EUR") == 0) {
-            themeData->themeRegion = EUR;
-        }
-        else if (cRegion.compare("UNIVERSAL") == 0) {
-            themeData->themeRegion = UNIVERSAL;
-        }
-
         themeData->themeID = std::string(themeMetadata->at("Metadata").at("themeID"));
-        themeData->themeName = std::string(themeMetadata->at("Metadata").at("themeName"));
-        themeData->themeAuthor = std::string(themeMetadata->at("Metadata").at("themeAuthor"));
+
+        std::string themeIDPathStr = themeData->themeID;
+        themeIDPathStr.erase(std::remove(themeIDPathStr.begin(), themeIDPathStr.end(), ':'), themeIDPathStr.end());
+        themeData->themeIDPath = themeIDPathStr;
+
+        themeData->themeName = removeNonASCII(std::string(themeMetadata->at("Metadata").at("themeName")));
+        themeData->themeAuthor = removeNonASCII(std::string(themeMetadata->at("Metadata").at("themeAuthor")));
+        themeData->themeVersion = std::string(themeMetadata->at("Metadata").at("themeVersion"));
 
         themeMetadata->clear();
 
@@ -168,9 +156,10 @@ namespace Installer {
         std::unique_ptr<json::json> installedThemeMetadata = std::make_unique<json::json>(json::json::parse(installedThemeJson));
  
         themeData->themeID = std::string(installedThemeMetadata->at("ThemeData").at("themeID"));
+        themeData->themeIDPath = std::string(installedThemeMetadata->at("ThemeData").at("themeIDPath"));
         themeData->themeName = std::string(installedThemeMetadata->at("ThemeData").at("themeName"));
         themeData->themeAuthor = std::string(installedThemeMetadata->at("ThemeData").at("themeAuthor"));
-        themeData->themeRegion = std::string(installedThemeMetadata->at("ThemeData").at("themeRegion"));
+        themeData->themeVersion = std::string(installedThemeMetadata->at("ThemeData").at("themeVersion"));
         themeData->installedThemePath = std::string(installedThemeMetadata->at("ThemeData").at("themeInstallPath"));
 
         installedThemeMetadata->clear();
@@ -178,7 +167,7 @@ namespace Installer {
         return 1;
     }
 
-    bool InstallTheme(std::string themePath, theme_data themeData) {
+    bool InstallTheme(std::filesystem::path themePath, theme_data themeData) {
         bool themeInstallSuccess = false;
         OSEnableHomeButtonMenu(FALSE);
         
@@ -194,131 +183,144 @@ namespace Installer {
             WHBLogPrintf("Cannot open theme archive. Error Code: %s", zip_error_strerror(&error));
 
             zip_error_fini(&error);
-        }
 
-        zip_file_t *themeMetadataFile; 
-        if (!(themeMetadataFile = zip_fopen(themeArchive, "metadata.json", ZIP_RDONLY))) {
-            zip_error_init_with_code(&error, err);
-            WHBLogPrintf("Cannot open theme metadata. Error Code: %s", zip_error_strerror(&error));
-            zip_error_fini(&error);        
-        }
-
-        zip_stat_t metadataStatData;
-        
-        if ((zip_stat(themeArchive, "metadata.json", 0, &metadataStatData)) != 0) {
-            zip_error_init_with_code(&error, err);
-
-            WHBLogPrintf("Cannot stat theme metadata! Error Code: %s", zip_error_strerror(&error));
-            zip_error_fini(&error);               
+            return themeInstallSuccess;
         }
         
-        std::string buffer(metadataStatData.size, '\0');
-
-        zip_fread(themeMetadataFile, &buffer[0], metadataStatData.size);
-        zip_fclose(themeMetadataFile);
-        
-        std::unique_ptr<json::json> themeMetadata = std::make_unique<json::json>(json::json::parse(buffer));
-
-        std::string themeRegionStr = std::string(themeMetadata->at("Metadata").at("themeRegion"));
-
         WHBLogPrintf("Installing %s...", themeData.themeName.c_str());
 
-        std::string modpackPath = std::string(THEMES_ROOT) + "/" + themeData.themeID;
+        std::string modpackPath = std::string(THEMES_ROOT) + "/" + themeData.themeName + " (" + themeData.themeIDPath + ")";
         WHBLogPrintf("Installing theme to: %s", modpackPath.c_str());
 
-        for (auto& [patchFilename, menuFilepath] : themeMetadata->at("Patches").items()) {
-            std::string menuPath = menuContentPath + std::string(menuFilepath);
-            std::string cachePath = std::string(THEMIIFY_ROOT) + "/cache/" + std::string(menuFilepath);
-            std::string patchPath = std::string(patchFilename);
-            std::string outputPath = modpackPath + "/content/" + std::string(menuFilepath);
+        int64_t numEntries;
+        if ((numEntries = zip_get_num_entries(themeArchive, ZIP_FL_UNCHANGED)) < 0) {
+            WHBLogPrintf("Theme archive is NULL!");
 
-            CreateParentDirectories(cachePath);
+            return themeInstallSuccess;
+        }
+        
+        for (uint64_t i = 0; i < static_cast<uint64_t>(numEntries); ++i) {
+            std::string menuFilePath = "";
+            std::string entryName = std::string(zip_get_name(themeArchive, i, ZIP_FL_ENC_RAW));
 
-            zip_file_t *patchFile;
-            if (!(patchFile = zip_fopen(themeArchive, patchFilename.c_str(), ZIP_RDONLY))) {
-                zip_error_init_with_code(&error, err);
+            if (entryName == "Men.bps") {
+                menuFilePath += MEN_PATH;
+            }
+            else if (entryName == "Men2.bps") {
+                menuFilePath += MEN2_PATH;
+            }
+            else if (entryName == "cafe_barista_men.bps") {
+                menuFilePath += CAFE_BARISTA_MEN_PATH;
+            }
+            else if (entryName.contains("AllMessage")) {
+                const std::string allMessageStr = "AllMessage_";
+                const std::string extensionStr = ".bps";
 
-                WHBLogPrintf("Cannot open %s!. Error Code: %s", patchFilename.c_str(), zip_error_strerror(&error));
+                std::string regionLangStr = entryName.substr(allMessageStr.size(), entryName.size() - allMessageStr.size() - extensionStr.size());
 
-                zip_error_fini(&error);  
+                auto it = regionLangMap.find(regionLangStr);
+                if (it == regionLangMap.end()) {
+                    WHBLogPrintf("Unknown AllMessage Region and Language: %s", regionLangStr.c_str());
+                }
 
-                themeInstallSuccess = false;
-                break;
+                std::string path = it->second;
+                menuFilePath += path;
             }
 
-            zip_stat_t patchStatData;
-            if ((zip_stat(themeArchive, patchFilename.c_str(), 0, &patchStatData)) != 0) {
-                zip_error_init_with_code(&error, err);
+            if (entryName != "metadata.json") {
+                WHBLogPrintf("menuFilePath: %s", menuFilePath.c_str());
 
-                WHBLogPrintf("Cannot stat %s!. Error Code: %s", patchFilename.c_str(), zip_error_strerror(&error));
+                std::string menuPath = menuContentPath + menuFilePath;
+                std::string cachePath = std::string(THEMIIFY_ROOT) + "/cache/" + menuFilePath;
+                std::string patchPath = entryName;
+                std::string outputPath = modpackPath + "/content/" + menuFilePath;
 
-                zip_error_fini(&error);   
+                CreateParentDirectories(cachePath);
 
-                themeInstallSuccess = false;  
-                break;           
-            }
-            std::size_t patchSize = patchStatData.size;
+                zip_file_t *patchFile;
+                if (!(patchFile = zip_fopen(themeArchive, patchPath.c_str(), ZIP_RDONLY))) {
+                    zip_error_init_with_code(&error, err);
 
-            std::ifstream inputFile(cachePath, std::ios::binary | std::ios::ate);
-            if (!inputFile.is_open()) {
-                WHBLogPrintf("Cache does not exist, creating cache for %s", menuPath.c_str());
+                    WHBLogPrintf("Cannot open %s!. Error Code: %s", patchPath.c_str(), zip_error_strerror(&error));
 
-                inputFile.clear();
-                inputFile.open(menuPath, std::ios::binary | std::ios::ate);
+                    zip_error_fini(&error);  
+
+                    themeInstallSuccess = false;
+                    break;
+                }
+
+                zip_stat_t patchStatData;
+                if ((zip_stat(themeArchive, patchPath.c_str(), 0, &patchStatData)) != 0) {
+                    zip_error_init_with_code(&error, err);
+
+                    WHBLogPrintf("Cannot stat %s!. Error Code: %s", patchPath.c_str(), zip_error_strerror(&error));
+
+                    zip_error_fini(&error);   
+
+                    themeInstallSuccess = false;  
+                    break;           
+                }
+                std::size_t patchSize = patchStatData.size;
+
+                std::ifstream inputFile(cachePath, std::ios::binary | std::ios::ate);
                 if (!inputFile.is_open()) {
-                    WHBLogPrintf("Could not open source file for %s", patchFilename.c_str());
+                    WHBLogPrintf("Cache does not exist, creating cache for %s", menuPath.c_str());
 
                     inputFile.clear();
-                    /* The file doesn't exist but theme installation can still continue on.
-                    Unless something is seriously wrong, this will only occur if an out of region file
-                    (like a text replacement for a specific language) is what's being patched. */
-                    continue;
+                    inputFile.open(menuPath, std::ios::binary | std::ios::ate);
+                    if (!inputFile.is_open()) {
+                        WHBLogPrintf("Could not open source file for %s", patchPath.c_str());
+
+                        inputFile.clear();
+                        /* The file doesn't exist but theme installation can still continue on.
+                        Unless something is seriously wrong, this will only occur if an out of region file
+                        (like a text replacement for a specific language) is what's being patched. */
+                        continue;
+                    }
+                    else {
+                        CreateCacheFile(inputFile, cachePath);
+                    }
                 }
                 else {
-                    CreateCacheFile(inputFile, cachePath);
+                    WHBLogPrintf("Found %s in cache at %s", std::string(menuFilePath).c_str(), cachePath.c_str());
+                }
+
+                std::size_t inputSize = static_cast<std::size_t>(inputFile.tellg());
+                inputFile.seekg(0, std::ios::beg);
+
+                std::vector<uint8_t> patchData(patchSize);
+                std::vector<uint8_t> inputData(inputSize);
+
+                zip_fread(patchFile, patchData.data(), patchSize);
+                zip_fclose(patchFile);
+
+                inputFile.read(reinterpret_cast<char*>(inputData.data()), inputSize);
+                inputFile.close();
+
+                auto [bytes, result] = Hips::patch(inputData.data(), inputSize, patchData.data(), patchSize, Hips::PatchType::BPS);
+                if (result == Hips::Result::Success) {
+                    CreateParentDirectories(outputPath);
+
+                    std::ofstream outputFile(outputPath, std::ios::binary);
+                    outputFile.write(reinterpret_cast<char*>(bytes.data()), bytes.size());
+                    outputFile.close();
+
+                    themeInstallSuccess = true;
+
+                    WHBLogPrintf("File written to %s", outputPath.c_str());
+                }
+                else {
+                    WHBLogPrintf("Patch failed. Hips result: %d", result);
+
+                    themeInstallSuccess = false;
+                    break;
                 }
             }
-            else {
-                WHBLogPrintf("Found %s in cache at %s", std::string(menuFilepath).c_str(), cachePath.c_str());
-            }
-
-            std::size_t inputSize = static_cast<std::size_t>(inputFile.tellg());
-            inputFile.seekg(0, std::ios::beg);
-
-            std::vector<uint8_t> patchData(patchSize);
-            std::vector<uint8_t> inputData(inputSize);
-
-            zip_fread(patchFile, patchData.data(), patchSize);
-            zip_fclose(patchFile);
-
-            inputFile.read(reinterpret_cast<char*>(inputData.data()), inputSize);
-            inputFile.close();
-
-            auto [bytes, result] = Hips::patch(inputData.data(), inputSize, patchData.data(), patchSize, Hips::PatchType::BPS);
-            if (result == Hips::Result::Success) {
-                CreateParentDirectories(outputPath);
-
-                std::ofstream outputFile(outputPath, std::ios::binary);
-                outputFile.write(reinterpret_cast<char*>(bytes.data()), bytes.size());
-                outputFile.close();
-
-                themeInstallSuccess = true;
-
-                WHBLogPrintf("File written to %s", outputPath.c_str());
-            }
-            else {
-                WHBLogPrintf("Patch failed. Hips result: %d", result);
-
-                themeInstallSuccess = false;
-                break;
-            }
         }
-
-        themeMetadata->clear();
-
+        
         zip_close(themeArchive);
 
-        std::string installPath = std::string(THEMIIFY_INSTALLED_THEMES) + "/" + themeData.themeID + ".json";
+        std::string installPath = std::string(THEMIIFY_INSTALLED_THEMES) + "/" + themeData.themeIDPath + ".json";
 
         if (themeInstallSuccess) {
             WHBLogPrintf("Install Path: %s", installPath.c_str());
@@ -328,7 +330,8 @@ namespace Installer {
                 {"themeName", themeData.themeName},
                 {"themeAuthor", themeData.themeAuthor},
                 {"themeID", themeData.themeID},
-                {"themeRegion", themeRegionStr},
+                {"themeIDPath", themeData.themeIDPath},
+                {"themeVersion", themeData.themeVersion},
                 {"themeInstallPath", modpackPath}
             };
 
@@ -336,16 +339,16 @@ namespace Installer {
             if (outFile.is_open()) {
                 outFile << installedThemeJson.dump(4);
                 outFile.close();
-                WHBLogPrintf("%s saved to Themiify installed directory.", themeData.themeID.c_str());
+                WHBLogPrintf("%s saved to Themiify installed directory.", themeData.themeName.c_str());
             }
             else {
                 // Not sure exactly what to tell the user here
-                WHBLogPrintf("%s failed to save to Themiify installed directory!", themeData.themeID.c_str());
+                WHBLogPrintf("%s failed to save to Themiify installed directory!", themeData.themeName.c_str());
             }
 
             installedThemeJson.clear();
 
-            SetCurrentTheme(themeData.themeID);
+            SetCurrentTheme(themeData.themeName, themeData.themeIDPath);
         }
         else {
             // In case the theme was somehow already installed
@@ -382,7 +385,7 @@ namespace Installer {
         return styleMiiUConfigPath;
     }
 
-    bool SetCurrentTheme(std::string themeID) {
+    bool SetCurrentTheme(std::string themeName, std::string themeID) {
         std::string styleMiiUConfigPath = GetStyleMiiUConfigPath();
         
         std::ifstream configFile(styleMiiUConfigPath);
@@ -394,7 +397,7 @@ namespace Installer {
 
         configFile.close();
 
-        configJson["storageitems"]["enabledThemes"] = themeID;
+        configJson["storageitems"]["enabledThemes"] = std::string(themeName + " (" + themeID + ")");
 
         std::ofstream outFile(styleMiiUConfigPath, std::ios::trunc);
         if (!outFile.is_open()) {
@@ -403,7 +406,7 @@ namespace Installer {
         }
         outFile << configJson.dump(4);
         outFile.close();
-        WHBLogPrintf("Succesfully set %s as current StyleMiiU theme!", themeID.c_str());
+        WHBLogPrintf("Succesfully set %s as current StyleMiiU theme!", themeName.c_str());
 
         return true;
     }
@@ -420,8 +423,8 @@ namespace Installer {
 
         configFile.close();
 
-        std::string themeID = configJson["storageitems"]["enabledThemes"];
+        std::string themeName = configJson["storageitems"]["enabledThemes"];
 
-        return themeID;
+        return themeName;
     }
 }

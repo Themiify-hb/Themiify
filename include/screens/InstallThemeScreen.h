@@ -27,20 +27,17 @@ private:
         MENU_STATE_THEME_INSTALL_SUCCESS,
         MENU_STATE_THEME_INSTALL_ERROR
     };
-
-    std::string RegionToString(Installer::Region region);
+    
     bool IsThemeAlreadyInstalled();
 
     MenuState mMenuState;
-    bool mMenuStateFailure, mThemeRegionMismatch;
+    bool mMenuStateFailure;
 
     int mFileIdx, mScrollOffset;
 
     std::vector<std::string> mFileList, mFileListFullPath;
 
-    std::string mSelectedPath, mSelectedPathShort, mThemeName, mThemeAuthor, mThemeID;
+    std::string mSelectedPath, mSelectedPathShort, mThemeName, mThemeAuthor, mThemeID, mThemeIDPath, mThemeVersion;
 
     Installer::theme_data mThemeData;
-
-    Installer::Region mSystemRegion, mThemeRegion;
 };
