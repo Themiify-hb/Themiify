@@ -167,7 +167,7 @@ namespace Installer {
         return 1;
     }
 
-    bool InstallTheme(std::filesystem::path themePath, theme_data themeData) {
+    bool InstallTheme(std::string themePath, theme_data themeData) {
         bool themeInstallSuccess = false;
         OSEnableHomeButtonMenu(FALSE);
         
@@ -264,7 +264,7 @@ namespace Installer {
 
                 std::ifstream inputFile(cachePath, std::ios::binary | std::ios::ate);
                 if (!inputFile.is_open()) {
-                    WHBLogPrintf("Cache does not exist, creating cache for %s", menuPath.c_str());
+                    WHBLogPrintf("Cache does not exist for %s", menuPath.c_str());
 
                     inputFile.clear();
                     inputFile.open(menuPath, std::ios::binary | std::ios::ate);
@@ -278,6 +278,7 @@ namespace Installer {
                         continue;
                     }
                     else {
+                        WHBLogPrintf("Creating cache for %s", menuPath.c_str());
                         CreateCacheFile(inputFile, cachePath);
                     }
                 }

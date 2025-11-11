@@ -18,6 +18,7 @@ private:
     enum {
         STATE_INIT,
         STATE_MOUNT_MLC,
+        STATE_CHECK_STYLEMIIU_EXISTS,
         STATE_LOAD_MENU,
         STATE_IN_MENU,
     } mState;
@@ -25,4 +26,6 @@ private:
     bool mStateFailure;
 
     std::unique_ptr<Screen> mMenuScreen;
+
+    bool StyleMiiUExists();
 };

@@ -65,10 +65,10 @@ void InstalledThemesScreen::Draw()
             Gfx::Print(-3, 4, "Theme Name: %s\nTheme Author: %s\nTheme Version: %s\nTheme ID: %s\n\nTheme was installed to:\n%s", mSelectedThemeData.themeName.c_str(), mSelectedThemeData.themeAuthor.c_str(), mSelectedThemeData.themeVersion.c_str(), mSelectedThemeData.themeID.c_str(), mSelectedThemeData.installedThemePath.c_str());
             if (std::string(mSelectedThemeData.themeName + " (" + mSelectedThemeData.themeIDPath + ")") == mCurrentTheme) {
                 Gfx::Print(-3, 12, "This Theme has been set as the current theme.");
-                Gfx::Print(-4, 17, "          X - Uninstall Theme                    B - Back");
+                Gfx::Print(-4, 17, "        X/1 - Uninstall Theme                    B - Back");
             }
             else {
-                Gfx::Print(-4, 17, "X - Uninstall Theme       Y - Set as Current Theme       B - Back");
+                Gfx::Print(-4, 17, "X/1 - Uninstall Theme      Y/2 - Set as Current Theme      B - Back");
             }
 
             break;

@@ -34,8 +34,8 @@ void MainScreen::Draw()
         case STATE_INIT:
             if (mStateFailure) {
                 Gfx::SetBackgroundColour(BACKGROUND_ERR_COLOUR);
-                Gfx::Print(-4, 2, "Failed to initialize libmocha, themes can only\nbe installed via the cache");
-                Gfx::Print(-4, 17, "            A - Continue                         B - Quit");
+                Gfx::Print(-4, 2, "Failed to initialize libmocha!");
+                Gfx::Print(-4, 17, "                           B/HOME - Quit");
                 break;
             }
             
@@ -44,16 +44,26 @@ void MainScreen::Draw()
         case STATE_MOUNT_MLC:
             if (mStateFailure) {
                 Gfx::SetBackgroundColour(BACKGROUND_ERR_COLOUR);
-                Gfx::Print(-4, 4, "Failed to mount mlc, themes can only be\ninstalled via the cache.");
+                Gfx::Print(-4, 2, "Failed to mount mlc, themes can only be\ninstalled via the cache.");
                 Gfx::Print(-4, 17, "            A - Continue                         B - Quit");
                 break;
             }
             
             Gfx::Print(-4, 4, "Mounting mlc...");
             break;
+        case STATE_CHECK_STYLEMIIU_EXISTS:
+            if (mStateFailure) {
+                Gfx::SetBackgroundColour(BACKGROUND_ERR_COLOUR);
+                Gfx::Print(-4, 2, "StyleMiiU was not found on your system!\n\nPlease ensure you have the StyleMiiU Aroma Plugin\ndownloaded on your system, Themiify will not work without it!\n\nStyleMiiU can be found on the Homebrew Appstore and on Github at:\nhttps://github.com/Themiify-hb/StyleMiiU-Plugin");
+                Gfx::Print(-4, 17, "                           B/HOME - Quit");
+                break;
+            }
+
+            Gfx::Print(-4, 6, "Checking for StyleMiiU...");
+            break;
         case STATE_LOAD_MENU:
             Gfx::SetBackgroundColour(BACKGROUND_COLOUR);
-            Gfx::Print(-4, 6, "Loading menu...");
+            Gfx::Print(-4, 8, "Loading menu...");
             break;
         case STATE_IN_MENU:
             break;
@@ -70,10 +80,6 @@ bool MainScreen::Update(VPADStatus status)
         return true;
     }
 
-    if (mStateFailure) {
-        return true;
-    }
-
     switch (mState) {
         MochaUtilsStatus res;
         
@@ -85,10 +91,7 @@ bool MainScreen::Update(VPADStatus status)
             }
 
             if (mStateFailure) {
-                if (status.trigger & VPAD_BUTTON_A) {
-                    mState = STATE_MOUNT_MLC;
-                }
-                else if (status.trigger & VPAD_BUTTON_B) {
+                if (status.trigger & VPAD_BUTTON_B) {
                     return false;
                 }
             }
@@ -104,15 +107,30 @@ bool MainScreen::Update(VPADStatus status)
 
             if (mStateFailure) {
                 if (status.trigger & VPAD_BUTTON_A) {
-                    mState = STATE_LOAD_MENU;
+                    mState = STATE_CHECK_STYLEMIIU_EXISTS;
                 }
                 else if (status.trigger & VPAD_BUTTON_B) {
                     return false;
                 }
             }
             else {
-                mState = STATE_LOAD_MENU;
+                mState = STATE_CHECK_STYLEMIIU_EXISTS;
             }            
+
+            break;
+        case STATE_CHECK_STYLEMIIU_EXISTS:
+            if (!StyleMiiUExists()) {
+                mStateFailure = true;
+            }
+
+            if (mStateFailure) {
+                if (status.trigger & VPAD_BUTTON_B) {
+                    return false;
+                }
+            }
+            else {
+                mState = STATE_LOAD_MENU;
+            }
 
             break;
         case STATE_LOAD_MENU:
@@ -124,4 +142,22 @@ bool MainScreen::Update(VPADStatus status)
     };
 
     return true;
+}
+
+bool MainScreen::StyleMiiUExists()
+{
+    char environmentPathBuffer[0x100];
+
+    MochaUtilsStatus res;
+    if ((res = Mocha_GetEnvironmentPath(environmentPathBuffer, sizeof(environmentPathBuffer))) != MOCHA_RESULT_SUCCESS) {
+        WHBLogPrintf("Failed to get environment path. Are you running on Aroma? Result: %s", Mocha_GetStatusStr(res));
+    }
+
+    std::string styleMiiUPath = std::string(environmentPathBuffer) + "/plugins/stylemiiu.wps";
+
+    if (std::filesystem::exists(styleMiiUPath)) {
+        return true;
+    }
+
+    return false;
 }
