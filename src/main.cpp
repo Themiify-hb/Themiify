@@ -1,3 +1,11 @@
+/*
+ * Themiify - A theme manager for the Nintendo Wii U
+ * Copyright (C) 2026 Fangal-Airbag  
+ * Copyright (C) 2026 AlphaCraft9658
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 #include <memory>
 
 #include <vpad/input.h>
