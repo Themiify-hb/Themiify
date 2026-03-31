@@ -3,4 +3,4 @@
 	url = https://github.com/dkosmari/imgui.git
 [submodule "external/glaze"]
 	path = external/glaze
-	url = git@github.com:stephenberry/glaze.git
+	url = https://github.com/stephenberry/glaze.git

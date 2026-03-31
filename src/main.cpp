@@ -7,7 +7,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
- #include <vector>
+#include <vector>
 
 #include <whb/log.h>
 #include <whb/log_udp.h>

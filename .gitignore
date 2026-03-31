@@ -1,5 +1,7 @@
 /.vscode
 /build
+.DS_Store
+/external/.DS_Store
 
 *.elf
 *.rpx
