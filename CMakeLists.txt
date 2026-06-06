@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_executable(themiify
     src/main.cpp
+    src/App.cpp
 )
 wut_create_rpx(themiify)
 wut_create_wuhb(themiify

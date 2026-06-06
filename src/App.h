@@ -7,13 +7,12 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-#include "App.h"
+#pragma once
 
-int main(int argc, char **argv)
-{
-    App::initialize();
-    App::run();
-    App::finalize();
+namespace App {
+    void initialize();
 
-    return 0;
+    void finalize();
+
+    bool run();
 }
