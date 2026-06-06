@@ -8,6 +8,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_executable(themiify
     src/main.cpp
     src/App.cpp
+    src/NavBar.cpp
+    src/ContentPanel.cpp
+    src/screens/HomeScreen.cpp
+    src/screens/DownloadScreen.cpp
+    src/screens/InstalledScreen.cpp
+    src/screens/ThemezerScreen.cpp
 )
 wut_create_rpx(themiify)
 wut_create_wuhb(themiify

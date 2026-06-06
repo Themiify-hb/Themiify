@@ -8,11 +8,14 @@
  */
 
 #include "App.h"
+#include "NavBar.h"
+#include "ContentPanel.h"
 
 #include <vector>
 
 #include <whb/log.h>
 #include <whb/log_udp.h>
+#include <whb/log_cafe.h>
 
 #include <coreinit/memory.h>
 
@@ -70,6 +73,9 @@ namespace App {
         fontConfig.EllipsisChar = U'…';
         fontConfig.GlyphOffset.y = -30 * (4.0f / 32.0f);
 
+        // Get Wii U System fonts.
+        // Down the line move this to its own font loading function because we'll
+        // be loading more fonts than just this one.
         void *fontData = nullptr;
         uint32_t fontSize = 0;
         OSGetSharedData(OS_SHAREDDATATYPE_FONT_STANDARD, 0, &fontData, &fontSize);
@@ -82,6 +88,7 @@ namespace App {
 
     void initialize() {
         WHBLogUdpInit();
+        WHBLogCafeInit();
     
         SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_GAMECONTROLLER);
         IMG_Init(IMG_INIT_JPG | IMG_INIT_PNG | IMG_INIT_WEBP);
@@ -90,7 +97,7 @@ namespace App {
         window = SDL_CreateWindow("Themiify", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1280, 720, SDL_WINDOW_SHOWN);
         renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 
-        WHBLogPrint("Hello world from themiify!");
+        WHBLogPrint("Hello world from Themiify!");
         
         initialize_imgui();
         
@@ -103,15 +110,22 @@ namespace App {
                 }
             }
         }
+
+        NavBar::initialize(renderer);
+        ContentPanel::initialize(renderer);
     }
 
     void finalize() {
+        NavBar::finalize();
+        ContentPanel::finalize();
+        
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
 
         SDL_Quit();
 
         WHBLogUdpDeinit();
+        WHBLogCafeDeinit();
     }
 
     bool run() {
@@ -123,7 +137,7 @@ namespace App {
                 ImGui_ImplSDL2_ProcessEvent(&e);
                 switch (e.type) {
                     case SDL_QUIT: {
-                        WHBLogPrint("buh bye!");
+                        WHBLogPrint("Quitting Themiify!");
                         isRunning = false;
                         break;
                     }
@@ -155,10 +169,7 @@ namespace App {
 
             ImGui::NewFrame();
 
-            // lock window position
             ImGui::SetNextWindowPos({0, 0}, ImGuiCond_Always);
-            // lock window size
-            
             ImGui::SetNextWindowSize({1280, 720}, ImGuiCond_Always);
 
             if (ImGui::RAII::Window main_window{"Themiify",
@@ -166,12 +177,13 @@ namespace App {
                                             ImGuiWindowFlags_NoTitleBar |
                                             ImGuiWindowFlags_NoMove |
                                             ImGuiWindowFlags_NoSavedSettings |
-                                            ImGuiWindowFlags_NoResize}) {
-                // Add the main UI things here                                
-                ImGui::Text("Hello World!");
+                                            ImGuiWindowFlags_NoResize}) {                            
+                NavBar::process_ui();
+                ImGui::SameLine();
+                ContentPanel::process_ui(NavBar::get_current_tab());
             }
 
-            ImGui::ShowDemoWindow();
+            // ImGui::ShowDemoWindow();
             // ImGui::ShowStyleEditor();
 
             ImGui::EndFrame();
@@ -183,7 +195,7 @@ namespace App {
 
             ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData(), renderer);
 
-            // Wii U clip fix, will ifdef eventually
+            // Wii U clip fix
             SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
             SDL_RenderDrawPoint(renderer, 0, 0);
 
