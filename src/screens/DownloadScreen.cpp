@@ -26,8 +26,8 @@ namespace DownloadScreen {
     void process_ui() {
         using namespace ImGui::RAII;
 
-        Child home_content{"DownloadContent", {0, 0}, ImGuiChildFlags_NavFlattened};
-        if (!home_content)
+        Child download_content{"DownloadContent", {0, 0}, ImGuiChildFlags_NavFlattened};
+        if (!download_content)
             return;
         
         {

@@ -10,6 +10,10 @@ add_executable(themiify
     src/App.cpp
     src/NavBar.cpp
     src/ContentPanel.cpp
+    src/graphql.cpp
+    src/byte_stream.cpp
+    src/tracer.cpp
+    src/ThemezerAPI.cpp
     src/screens/HomeScreen.cpp
     src/screens/DownloadScreen.cpp
     src/screens/InstalledScreen.cpp
@@ -39,10 +43,11 @@ pkg_check_modules(freetype2 REQUIRED IMPORTED_TARGET freetype2)
 pkg_check_modules(harfbuzz REQUIRED IMPORTED_TARGET harfbuzz)
 pkg_check_modules(libpng REQUIRED IMPORTED_TARGET libpng)
 pkg_check_modules(libzip REQUIRED IMPORTED_TARGET libzip)
+pkg_check_modules(libcurl REQUIRED IMPORTED_TARGET libcurl)
 
 add_subdirectory(external)
 
 target_link_libraries(themiify PRIVATE
     PkgConfig::sdl2 PkgConfig::SDL2_mixer PkgConfig::SDL2_image PkgConfig::freetype2 
-    PkgConfig::harfbuzz PkgConfig::libpng PkgConfig::libzip bz2 mocha imgui glaze
+    PkgConfig::harfbuzz PkgConfig::libpng PkgConfig::libzip PkgConfig::libcurl bz2 mocha imgui glaze
 )

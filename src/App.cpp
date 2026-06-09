@@ -10,6 +10,7 @@
 #include "App.h"
 #include "NavBar.h"
 #include "ContentPanel.h"
+#include "ThemezerAPI.h"
 
 #include <vector>
 
@@ -29,6 +30,8 @@
 #include <backends/imgui_impl_sdl2.h>
 #include <backends/imgui_impl_sdlrenderer2.h>
 #include <misc/freetype/imgui_freetype.h>
+
+#include <curl/curl.h>
 
 namespace App {
     SDL_Window *window;
@@ -81,6 +84,8 @@ namespace App {
         OSGetSharedData(OS_SHAREDDATATYPE_FONT_STANDARD, 0, &fontData, &fontSize);
 
         io.Fonts->AddFontFromMemoryTTF(fontData, fontSize, 30, &fontConfig);
+        fontConfig.MergeMode = true;
+        io.Fonts->AddFontFromFileTTF("fs:/vol/content/fonts/fontawesome-webfont.ttf", 30, &fontConfig);
 
         ImGui_ImplSDL2_InitForSDLRenderer(window, renderer);
         ImGui_ImplSDLRenderer2_Init(renderer);
@@ -89,10 +94,16 @@ namespace App {
     void initialize() {
         WHBLogUdpInit();
         WHBLogCafeInit();
+
+        curl_global_init(CURL_GLOBAL_DEFAULT);
+
+        ThemezerAPI::initialize("Themiify/1.0 (Wii U)");
     
         SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_GAMECONTROLLER);
         IMG_Init(IMG_INIT_JPG | IMG_INIT_PNG | IMG_INIT_WEBP);
         Mix_Init(MIX_INIT_MP3 | MIX_INIT_OGG);
+
+        Mix_OpenAudioDevice(48000, MIX_DEFAULT_FORMAT, 2, 1024, NULL, SDL_AUDIO_ALLOW_ANY_CHANGE);
 
         window = SDL_CreateWindow("Themiify", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1280, 720, SDL_WINDOW_SHOWN);
         renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
@@ -124,6 +135,10 @@ namespace App {
 
         SDL_Quit();
 
+        ThemezerAPI::finalize();
+
+        curl_global_cleanup();
+
         WHBLogUdpDeinit();
         WHBLogCafeDeinit();
     }
@@ -132,11 +147,18 @@ namespace App {
         bool isRunning = true;
 
         while (isRunning) {
+            try {
+                ThemezerAPI::process();
+            }
+            catch (std::exception& e) {
+                WHBLogPrintf("ERROR in ThemezerAPI::process(): %s", e.what());
+            }
+            
             SDL_Event e;
             while(SDL_PollEvent(&e)) {
                 ImGui_ImplSDL2_ProcessEvent(&e);
                 switch (e.type) {
-                    case SDL_QUIT: {
+                    case SDL_QUIT: { 
                         WHBLogPrint("Quitting Themiify!");
                         isRunning = false;
                         break;

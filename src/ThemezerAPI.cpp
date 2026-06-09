@@ -1,0 +1,260 @@
+#include <ranges>
+#include <stdexcept>
+#include <utility>
+
+#include <whb/log.h>
+
+#include <glaze/glaze.hpp>
+
+#include "ThemezerAPI.h"
+#include "graphql.h"
+#include "tracer.hpp"
+
+using namespace std::literals;
+
+namespace glz {
+
+    template<>
+    struct meta<ThemezerAPI::ItemSort> {
+        using enum ThemezerAPI::ItemSort;
+        static constexpr auto value = enumerate(CREATED,
+                                                DOWNLOADS,
+                                                SAVES,
+                                                UPDATED);
+    };
+
+    template<>
+    struct meta<ThemezerAPI::SortOrder> {
+        using enum ThemezerAPI::SortOrder;
+        static constexpr auto value = enumerate(ASC, DESC);
+    };
+
+}
+
+namespace ThemezerAPI {
+
+    const std::string url = "https://api.themezer.net/graphql";
+
+    bool busy;
+
+    void initialize(const std::string& user_agent)
+    {
+        TRACE_FUNC;
+
+        graphql::initialize(user_agent);
+        busy = false;
+    }
+
+    void finalize()
+    {
+        TRACE_FUNC;
+
+        graphql::finalize();
+        busy = true;
+    }
+
+    bool is_busy()
+    {
+        return busy;
+    }
+
+    void process()
+    {
+        graphql::process();
+    }
+
+    namespace {
+
+        void common_errors_handler(const glz::generic& errors)
+        {
+            busy = false;
+
+            WHBLogPrintf("ERROR: graphql returned errors:");
+            WHBLogPrintf("%s",
+                         glz::write<glz::opts{.prettify = true}>(errors)
+                             .value_or("error")
+                             .c_str());
+        }
+
+        void common_exception_handler(const std::exception& error)
+        {
+            busy = false;
+
+            WHBLogPrintf("ERROR: %s", error.what());
+        }
+
+    } // namespace
+
+    void wiiu::themes(const ThemesSpec& spec,
+                      themes_function_t callback)
+    {
+        TRACE_FUNC;
+
+        if (busy) {
+            WHBLogPrintf("ERROR: ThemezerAPI is busy");
+            return;
+        }
+
+        const std::string query = R"(
+query Themes($order: SortOrder, $paginationArgs: PaginationInput, $query: String, $sort: ItemSort) {
+  wiiu {
+    themes(order: $order, paginationArgs: $paginationArgs, query: $query, sort: $sort) {
+      pageInfo {
+        itemCount
+        limit
+        page
+        pageCount
+      }
+      nodes {
+        uuid
+        hexId
+        name
+        slug
+        creator {
+          username
+        }
+        collagePreview {
+          thumbUrl
+        }
+        downloadCount
+        downloadUrl
+      }
+    }
+  }
+}
+)";
+
+        std::string variables_json;
+        if (auto error = glz::write_json(spec, variables_json))
+            throw std::runtime_error{"glz::write_json() failed: "
+                                     + glz::format_error(error)};
+
+        auto data_handler = [callback = std::move(callback)](const glz::generic& data) mutable
+        {
+            busy = false;
+
+            auto& wiiu_obj = data.at("wiiu");
+            auto& themes_obj = wiiu_obj.at("themes");
+
+            auto& nodes = themes_obj.at("nodes").get<glz::generic::array_t>();
+            WiiuThemeSmallVec themes(nodes.size());
+
+#ifdef __cpp_lib_ranges_zip
+            for (auto [theme, node] : std::views::zip(themes, nodes)) {
+                if (auto error = glz::read_json(theme, node))
+                    throw std::runtime_error{"glz::read_json() failed: "
+                                             + glz::format_error(error)};
+            }
+#else
+            for (std::size_t i = 0; i < nodes.size(); ++i) {
+                if (auto error = glz::read_json(themes[i], nodes[i]))
+                    throw std::runtime_error{"glz::read_json() failed: "
+                                             + glz::format_error(error)};
+            }
+#endif
+
+            PageInfo pageInfo;
+            if (auto error = glz::read_json(pageInfo, themes_obj.at("pageInfo")))
+                throw std::runtime_error{"glz::read_json() failed: "
+                                         + glz::format_error(error)};
+
+            if (callback)
+                callback(themes, pageInfo);
+        };
+
+        busy = true;
+
+        graphql::get_async(url,
+                           query,
+                           variables_json,
+                           std::move(data_handler),
+                           common_errors_handler,
+                           common_exception_handler);
+    }
+
+    void wiiu::theme(const std::string& hexId,
+                     theme_function_t callback)
+    {
+        TRACE_FUNC;
+
+        if (busy) {
+            WHBLogPrintf("ERROR: ThemezerAPI is busy");
+            return;
+        }
+
+        const std::string query = R"(
+query($hexId: String!) {
+  wiiu {
+    theme(hexId: $hexId) {
+      uuid
+      hexId
+      quickId
+      slug
+      name
+      createdAt
+      updatedAt
+      creator {
+        username
+        avatarUrl
+      }
+      bgmPreviewUrl
+      collagePreview {
+        tinyUrl
+        thumbUrl
+        sdUrl
+        hdUrl
+      }
+      launcherScreenshot {
+        tinyUrl
+        thumbUrl
+        sdUrl
+        hdUrl
+      }
+      waraWaraPlazaScreenshot {
+        tinyUrl
+        thumbUrl
+        sdUrl
+        hdUrl
+      }
+      downloadCount
+      downloadUrl
+      tags {
+        name
+      }
+    }
+  }
+}
+)";
+
+        glz::generic variables;
+        variables["hexId"] = hexId;
+
+        auto data_handler = [callback = std::move(callback)](const glz::generic& data) mutable
+        {
+            TRACE_FUNC;
+
+            busy = false;
+
+            auto& wiiu_obj = data.at("wiiu");
+            auto& theme_obj = wiiu_obj.at("theme");
+
+            auto result = glz::read_json<WiiuThemeFull>(theme_obj);
+            if (!result)
+                throw std::runtime_error{"glz::read_json() failed: "s
+                                         + glz::format_error(result.error())};
+
+            if (callback)
+                callback(*result);
+        };
+
+        busy = true;
+
+        graphql::get_async(url,
+                           query,
+                           variables,
+                           std::move(data_handler),
+                           common_errors_handler,
+                           common_exception_handler);
+    }
+
+}

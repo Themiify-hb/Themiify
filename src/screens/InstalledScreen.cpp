@@ -26,8 +26,8 @@ namespace InstalledScreen {
     void process_ui() {
         using namespace ImGui::RAII;
 
-        Child home_content{"InstalledContent", {0, 0}, ImGuiChildFlags_NavFlattened};
-        if (!home_content)
+        Child installed_content{"InstalledContent", {0, 0}, ImGuiChildFlags_NavFlattened};
+        if (!installed_content)
             return;
         
         {
