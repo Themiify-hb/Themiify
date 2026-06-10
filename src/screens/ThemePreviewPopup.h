@@ -9,6 +9,10 @@
 
 #pragma once
 
-#define THEMIIFY_VERSION "0.1"
+#include <string>
 
-#define THEMES_ROOT "fs:/vol/external01/wiiu/themes"
+namespace ThemePreviewPopup {
+    void show(const std::string& launcherUrl, const std::string& waraWaraUrl);
+
+    void process_ui();
+}

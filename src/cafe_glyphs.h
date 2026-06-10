@@ -1,0 +1,277 @@
+/*
+ * List of special glyphs in the Wii U's system font (Cafe*.ttf).
+ *
+ * SPDX-License-Identifier: CC-PDM-1.0
+ *
+ * Source: https://github.com/dkosmari/cafe_glyphs
+ */
+
+#ifndef CAFE_GLYPHS_H
+#define CAFE_GLYPHS_H
+
+// Generic buttons.
+#define CAFE_GLYPH_BTN_A            "\uE000"
+#define CAFE_GLYPH_BTN_B            "\uE001"
+#define CAFE_GLYPH_BTN_X            "\uE002"
+#define CAFE_GLYPH_BTN_Y            "\uE003"
+#define CAFE_GLYPH_BTN_L            "\uE004"
+#define CAFE_GLYPH_BTN_R            "\uE005"
+#define CAFE_GLYPH_BTN_POWER_CIRCLE "\uE040"
+#define CAFE_GLYPH_BTN_DPAD         "\uE041"
+#define CAFE_GLYPH_BTN_HOME         "\uE044"
+#define CAFE_GLYPH_BTN_PLUS         "\uE045"
+#define CAFE_GLYPH_BTN_MINUS        "\uE046"
+#define CAFE_GLYPH_BTN_POWER_SQUARE "\uE078"
+
+// Generic D-PAD usage symbols.
+#define CAFE_GLYPH_BTN_DPAD_NEUTRAL    "\uE006"
+#define CAFE_GLYPH_BTN_DPAD_UP         "\uE079"
+#define CAFE_GLYPH_BTN_DPAD_DOWN       "\uE07A"
+#define CAFE_GLYPH_BTN_DPAD_LEFT       "\uE07B"
+#define CAFE_GLYPH_BTN_DPAD_RIGHT      "\uE07C"
+#define CAFE_GLYPH_BTN_DPAD_UP_DOWN    "\uE07D"
+#define CAFE_GLYPH_BTN_DPAD_DOWN_UP    CAFE_GLYPH_BTN_DPAD_UP_DOWN
+#define CAFE_GLYPH_BTN_DPAD_LEFT_RIGHT "\uE07E"
+#define CAFE_GLYPH_BTN_DPAD_RIGHT_LEFT CAFE_GLYPH_BTN_DPAD_LEFT_RIGHT
+
+// Pixelated alarm clock.
+#define CAFE_GLYPH_PIXEL_ALARM "\uE007"
+
+// Pixelated face emotions.
+#define CAFE_GLYPH_PIXEL_FACE_HAPPY   "\uE008"
+#define CAFE_GLYPH_PIXEL_FACE_ANGRY   "\uE009"
+#define CAFE_GLYPH_PIXEL_FACE_SAD     "\uE00A"
+#define CAFE_GLYPH_PIXEL_FACE_NEUTRAL "\uE00B"
+
+// Pixelated weather symbols.
+#define CAFE_GLYPH_PIXEL_SUNNY  "\uE00C"
+#define CAFE_GLYPH_PIXEL_CLOUDY "\uE00D"
+#define CAFE_GLYPH_PIXEL_RAINY  "\uE00E"
+#define CAFE_GLYPH_PIXEL_SNOWY  "\uE00F"
+
+// Pixelated boxed icons.
+#define CAFE_GLYPH_PIXEL_BOXED_EXCLAMATION "\uE010"
+#define CAFE_GLYPH_PIXEL_BOXED_QUESTION    "\uE011"
+#define CAFE_GLYPH_PIXEL_BOXED_PLUS        "\uE014"
+#define CAFE_GLYPH_PIXEL_BOXED_A           "\uE029"
+#define CAFE_GLYPH_PIXEL_BOXED_B           "\uE02A"
+#define CAFE_GLYPH_PIXEL_BOXED_C           "\uE02B"
+#define CAFE_GLYPH_PIXEL_BOXED_D           "\uE02C"
+
+// Pixelatd "AM" indicator. No "P".
+#define CAFE_GLYPH_PIXEL_BOXED_A_REVERSE "\uE02D"
+#define CAFE_GLYPH_PIXEL_BOXED_M_REVERSE "\uE02E"
+
+// Pixelated "PICT*CHAT".
+#define CAFE_GLYPH_PIXEL_P "\uE030"
+#define CAFE_GLYPH_PIXEL_I "\uE031"
+#define CAFE_GLYPH_PIXEL_C "\uE032"
+#define CAFE_GLYPH_PIXEL_T "\uE033"
+#define CAFE_GLYPH_PIXEL_H "\uE034"
+#define CAFE_GLYPH_PIXEL_A "\uE035"
+
+// Pixelated communication icons.
+#define CAFE_GLYPH_PIXEL_MAIL  "\uE012"
+#define CAFE_GLYPH_PIXEL_PHONE "\uE013"
+
+// Pixelated playing cards suits.
+#define CAFE_GLYPH_PIXEL_SPADES   "\uE015"
+#define CAFE_GLYPH_PIXEL_DIAMONDS "\uE016"
+#define CAFE_GLYPH_PIXEL_HEARTS   "\uE017"
+#define CAFE_GLYPH_PIXEL_CLUBS    "\uE018"
+
+// Pixelated arrows.
+#define CAFE_GLYPH_PIXEL_ARROW_RIGHT "\uE019"
+#define CAFE_GLYPH_PIXEL_ARROW_LEFT  "\uE01A"
+#define CAFE_GLYPH_PIXEL_ARROW_UP    "\uE01B"
+#define CAFE_GLYPH_PIXEL_ARROW_DOWN  "\uE01C"
+
+// Pixelated X (not as a letter.)
+#define CAFE_GLYPH_PIXEL_X "\uE028"
+
+// Pixelated close buttons.
+#define CAFE_GLYPH_PIXEL_CLOSE      "\uE03E"
+#define CAFE_GLYPH_PIXEL_CLOSE_BOLD "\uE03F"
+
+// Screen calibration.
+#define CAFE_GLYPH_TARGET "\uE01D"
+
+// Screen capture.
+#define CAFE_GLYPH_CAPTURE_STILL "\uE01E"
+#define CAFE_GLYPH_CAPTURE_VIDEO "\uE076"
+
+// Spinners.
+#define CAFE_GLYPH_SPINNER_0 "\uE020"
+#define CAFE_GLYPH_SPINNER_1 "\uE021"
+#define CAFE_GLYPH_SPINNER_2 "\uE022"
+#define CAFE_GLYPH_SPINNER_3 "\uE023"
+#define CAFE_GLYPH_SPINNER_4 "\uE024"
+#define CAFE_GLYPH_SPINNER_5 "\uE025"
+#define CAFE_GLYPH_SPINNER_6 "\uE026"
+#define CAFE_GLYPH_SPINNER_7 "\uE027"
+
+// Wiimote buttons.
+#define CAFE_GLYPH_WIIMOTE_BTN_POWER CAFE_GLYPH_BTN_POWER_CIRCLE
+#define CAFE_GLYPH_WIIMOTE_BTN_DPAD  CAFE_GLYPH_BTN_DPAD
+#define CAFE_GLYPH_WIIMOTE_BTN_A     "\uE042"
+#define CAFE_GLYPH_WIIMOTE_BTN_B     "\uE043"
+#define CAFE_GLYPH_WIIMOTE_BTN_HOME  CAFE_GLYPH_BTN_HOME
+#define CAFE_GLYPH_WIIMOTE_BTN_PLUS  CAFE_GLYPH_BTN_PLUS
+#define CAFE_GLYPH_WIIMOTE_BTN_MINUS CAFE_GLYPH_BTN_MINUS
+#define CAFE_GLYPH_WIIMOTE_BTN_1     "\uE047"
+#define CAFE_GLYPH_WIIMOTE_BTN_2     "\uE048"
+
+// Nunchuk buttons.
+#define CAFE_GLYPH_NUNCHUK_STICK "\uE049"
+#define CAFE_GLYPH_NUNCHUK_BTN_C "\uE04A"
+#define CAFE_GLYPH_NUNCHUK_BTN_Z "\uE04B"
+
+// Classic buttons. Note the face buttons are lower-case.
+#define CAFE_GLYPH_CLASSIC_BTN_DPAD       CAFE_GLYPH_BTN_DPAD
+#define CAFE_GLYPH_CLASSIC_BTN_HOME       CAFE_GLYPH_BTN_HOME
+#define CAFE_GLYPH_CLASSIC_BTN_PLUS       CAFE_GLYPH_BTN_PLUS
+#define CAFE_GLYPH_CLASSIC_BTN_MINUS      CAFE_GLYPH_BTN_MINUS
+#define CAFE_GLYPH_CLASSIC_BTN_A          "\uE04C"
+#define CAFE_GLYPH_CLASSIC_BTN_B          "\uE04D"
+#define CAFE_GLYPH_CLASSIC_BTN_X          "\uE04E"
+#define CAFE_GLYPH_CLASSIC_BTN_Y          "\uE04F"
+#define CAFE_GLYPH_CLASSIC_STICK_L        "\uE050"
+#define CAFE_GLYPH_CLASSIC_STICK_R        "\uE051"
+#define CAFE_GLYPH_CLASSIC_BTN_L          "\uE052"
+#define CAFE_GLYPH_CLASSIC_BTN_R          "\uE053"
+#define CAFE_GLYPH_CLASSIC_BTN_ZL         "\uE054"
+#define CAFE_GLYPH_CLASSIC_BTN_ZR         "\uE055"
+
+// Keyboard keys.
+#define CAFE_GLYPH_KBD_RETURN "\uE056"
+#define CAFE_GLYPH_KBD_SPACE  "\uE057"
+
+// Wiimote pointing.
+#define CAFE_GLYPH_HAND_POINT   "\uE058"
+#define CAFE_GLYPH_HAND_POINT_1 "\uE059"
+#define CAFE_GLYPH_HAND_POINT_2 "\uE05A"
+#define CAFE_GLYPH_HAND_POINT_3 "\uE05B"
+#define CAFE_GLYPH_HAND_POINT_4 "\uE05C"
+
+// Wiimote dragging.
+#define CAFE_GLYPH_HAND_FIST   "\uE05D"
+#define CAFE_GLYPH_HAND_FIST_1 "\uE05E"
+#define CAFE_GLYPH_HAND_FIST_2 "\uE05F"
+#define CAFE_GLYPH_HAND_FIST_3 "\uE060"
+#define CAFE_GLYPH_HAND_FIST_4 "\uE061"
+
+// Wiimote grabbable.
+#define CAFE_GLYPH_HAND_OPEN   "\uE062"
+#define CAFE_GLYPH_HAND_OPEN_1 "\uE063"
+#define CAFE_GLYPH_HAND_OPEN_2 "\uE064"
+#define CAFE_GLYPH_HAND_OPEN_3 "\uE065"
+#define CAFE_GLYPH_HAND_OPEN_4 "\uE066"
+
+// Wii logo.
+#define CAFE_GLYPH_WII "\uE067"
+
+// French ordinal superscripts.
+#define CAFE_GLYPH_ORD_ER "\uE068"
+#define CAFE_GLYPH_ORD_RE "\uE069"
+#define CAFE_GLYPH_ORD_E  "\uE06A"
+
+// Question mark block icon.
+#define CAFE_GLYPH_HELP "\uE06B"
+
+// Close icon.
+#define CAFE_GLYPH_CLOSE         "\uE070"
+#define CAFE_GLYPH_CLOSE_REVERSE "\uE071"
+
+// Navigation images.
+#define CAFE_GLYPH_BACK "\uE072"
+#define CAFE_GLYPH_HOME "\uE073"
+
+// Controller images.
+#define CAFE_GLYPH_GAMEPAD "\uE087"
+#define CAFE_GLYPH_WIIMOTE "\uE088"
+
+// Wii U Gamepad buttons.
+#define CAFE_GLYPH_GAMEPAD_BTN_DPAD       CAFE_GLYPH_BTN_DPAD
+#define CAFE_GLYPH_GAMEPAD_BTN_A          CAFE_GLYPH_BTN_A
+#define CAFE_GLYPH_GAMEPAD_BTN_B          CAFE_GLYPH_BTN_B
+#define CAFE_GLYPH_GAMEPAD_BTN_X          CAFE_GLYPH_BTN_X
+#define CAFE_GLYPH_GAMEPAD_BTN_Y          CAFE_GLYPH_BTN_Y
+#define CAFE_GLYPH_GAMEPAD_STICK          "\uE080"
+#define CAFE_GLYPH_GAMEPAD_STICK_L        "\uE081"
+#define CAFE_GLYPH_GAMEPAD_STICK_R        "\uE082"
+#define CAFE_GLYPH_GAMEPAD_BTN_L          "\uE083"
+#define CAFE_GLYPH_GAMEPAD_BTN_R          "\uE084"
+#define CAFE_GLYPH_GAMEPAD_BTN_ZL         "\uE085"
+#define CAFE_GLYPH_GAMEPAD_BTN_ZR         "\uE086"
+#define CAFE_GLYPH_GAMEPAD_BTN_HOME       CAFE_GLYPH_BTN_HOME
+#define CAFE_GLYPH_GAMEPAD_BTN_PLUS       CAFE_GLYPH_BTN_PLUS
+#define CAFE_GLYPH_GAMEPAD_BTN_MINUS      CAFE_GLYPH_BTN_MINUS
+#define CAFE_GLYPH_GAMEPAD_BTN_TV         "\uE089"
+#define CAFE_GLYPH_GAMEPAD_BTN_STICK_L    "\uE08A"
+#define CAFE_GLYPH_GAMEPAD_BTN_STICK_R    "\uE08B"
+#define CAFE_GLYPH_GAMEPAD_BTN_POWER      CAFE_GLYPH_BTN_POWER_CIRCLE
+
+// 3DS buttons. Note the L/R buttons also have the still camera icon (CAFE_GLYPH_CAPTURE_STILL).
+#define CAFE_GLYPH_3DS_BTN_DPAD       CAFE_GLYPH_BTN_DPAD
+#define CAFE_GLYPH_3DS_BTN_A          CAFE_GLYPH_BTN_A
+#define CAFE_GLYPH_3DS_BTN_B          CAFE_GLYPH_BTN_B
+#define CAFE_GLYPH_3DS_BTN_X          CAFE_GLYPH_BTN_X
+#define CAFE_GLYPH_3DS_BTN_Y          CAFE_GLYPH_BTN_Y
+#define CAFE_GLYPH_3DS_BTN_HOME       CAFE_GLYPH_HOME
+#define CAFE_GLYPH_3DS_CIRCLEPAD      "\uE077"
+#define CAFE_GLYPH_3DS_BTN_POWER      CAFE_GLYPH_BTN_POWER_SQUARE
+#define CAFE_GLYPH_3DS_STEPS          "\uE074"
+#define CAFE_GLYPH_3DS_PLAYCOIN       "\uE075"
+#define CAFE_GLYPH_3DS_BTN_L          CAFE_GLYPH_GAMEPAD_BTN_L
+#define CAFE_GLYPH_3DS_BTN_R          CAFE_GLYPH_GAMEPAD_BTN_R
+
+// N3DS buttons.
+#define CAFE_GLYPH_N3DS_BTN_ZL CAFE_GLYPH_GAMEPAD_BTN_ZL
+#define CAFE_GLYPH_N3DS_BTN_ZR CAFE_GLYPH_GAMEPAD_BTN_ZR
+
+// Wii U Pro buttons. Note: face buttons are upper-case.
+#define CAFE_GLYPH_PRO_BTN_DPAD       CAFE_GLYPH_CLASSIC_BTN_DPAD
+#define CAFE_GLYPH_PRO_BTN_A          CAFE_GLYPH_BTN_A
+#define CAFE_GLYPH_PRO_BTN_B          CAFE_GLYPH_BTN_B
+#define CAFE_GLYPH_PRO_BTN_X          CAFE_GLYPH_BTN_X
+#define CAFE_GLYPH_PRO_BTN_Y          CAFE_GLYPH_BTN_Y
+#define CAFE_GLYPH_PRO_BTN_L          CAFE_GLYPH_CLASSIC_BTN_L
+#define CAFE_GLYPH_PRO_BTN_R          CAFE_GLYPH_CLASSIC_BTN_R
+#define CAFE_GLYPH_PRO_BTN_ZL         CAFE_GLYPH_CLASSIC_BTN_ZL
+#define CAFE_GLYPH_PRO_BTN_ZR         CAFE_GLYPH_CLASSIC_BTN_ZR
+#define CAFE_GLYPH_PRO_BTN_PLUS       CAFE_GLYPH_CLASSIC_BTN_PLUS
+#define CAFE_GLYPH_PRO_BTN_MINUS      CAFE_GLYPH_CLASSIC_BTN_MINUS
+#define CAFE_GLYPH_PRO_BTN_HOME       CAFE_GLYPH_CLASSIC_BTN_HOME
+#define CAFE_GLYPH_PRO_BTN_STICK_L    CAFE_GLYPH_GAMEPAD_BTN_STICK_L
+#define CAFE_GLYPH_PRO_BTN_STICK_R    CAFE_GLYPH_GAMEPAD_BTN_STICK_R
+#define CAFE_GLYPH_PRO_STICK_L        CAFE_GLYPH_GAMEPAD_STICK_L
+#define CAFE_GLYPH_PRO_STICK_R        CAFE_GLYPH_GAMEPAD_STICK_R
+#define CAFE_GLYPH_PRO_BTN_POWER      CAFE_GLYPH_BTN_POWER_CIRCLE
+
+// Directional arrows.
+#define CAFE_GLYPH_ARROW_LEFT_RIGHT "\uE08C"
+#define CAFE_GLYPH_ARROW_RIGHT_LEFT CAFE_GLYPH_ARROW_LEFT_RIGHT
+#define CAFE_GLYPH_ARROW_UP_DOWN    "\uE08D"
+#define CAFE_GLYPH_ARROW_DOWN_UP    CAFE_GLYPH_ARROW_UP_DOWN
+#define CAFE_GLYPH_ARROW_CW         "\uE08E"
+#define CAFE_GLYPH_ARROW_CCW        "\uE08F"
+#define CAFE_GLYPH_ARROW_RIGHT      "\uE090"
+#define CAFE_GLYPH_ARROW_LEFT       "\uE091"
+#define CAFE_GLYPH_ARROW_UP         "\uE092"
+#define CAFE_GLYPH_ARROW_DOWN       "\uE093"
+#define CAFE_GLYPH_ARROW_UP_RIGHT   "\uE094"
+#define CAFE_GLYPH_ARROW_RIGHT_UP   CAFE_GLYPH_ARROW_UP_RIGHT
+#define CAFE_GLYPH_ARROW_DOWN_RIGHT "\uE095"
+#define CAFE_GLYPH_ARROW_RIGHT_DOWN CAFE_GLYPH_ARROW_DOWN_RIGHT
+#define CAFE_GLYPH_ARROW_DOWN_LEFT  "\uE096"
+#define CAFE_GLYPH_ARROW_LEFT_DOWN  CAFE_GLYPH_ARROW_DOWN_LEFT
+#define CAFE_GLYPH_ARROW_UP_LEFT    "\uE097"
+#define CAFE_GLYPH_ARROW_LEFT_UP    CAFE_GLYPH_ARROW_UP_LEFT
+
+// Large bold X, nothing around it.
+#define CAFE_GLYPH_X "\uE098"
+
+// NFC reader symbol
+#define CAFE_GLYPH_NFC "\uE099"
+
+#endif

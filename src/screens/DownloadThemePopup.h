@@ -9,6 +9,8 @@
 
 #pragma once
 
-#define THEMIIFY_VERSION "0.1"
+namespace DownloadThemePopup {
+    void show();
 
-#define THEMES_ROOT "fs:/vol/external01/wiiu/themes"
+    void process_ui();
+}

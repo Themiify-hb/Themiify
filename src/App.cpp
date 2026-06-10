@@ -12,6 +12,7 @@
 #include "ContentPanel.h"
 #include "ThemezerAPI.h"
 #include "ImageLoader.h"
+#include "DownloadManager.h"
 #include "utils.h"
 
 #include <vector>
@@ -28,6 +29,7 @@
 #include <SDL2/SDL_mixer.h> 
 
 #include <imgui.h>
+#include <imgui_internal.h>
 #include <misc/cpp/imgui_raii.h>
 #include <misc/cpp/imgui_stdlib.h>
 #include <backends/imgui_impl_sdl2.h>
@@ -45,6 +47,12 @@ namespace App {
     void initialize_imgui() {
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
+
+        ImGuiContext& g = *ImGui::GetCurrentContext();
+
+        g.ConfigNavWindowingWithGamepad = false;
+        g.ConfigNavWindowingKeyNext = 0;
+        g.ConfigNavWindowingKeyPrev = 0;        
 
         ImGuiIO &io = ImGui::GetIO();
         io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
@@ -95,7 +103,6 @@ namespace App {
     }
 
     void initialize() {
-        WHBLogUdpInit();
         WHBLogCafeInit();
 
         curl_global_init(CURL_GLOBAL_DEFAULT);
@@ -127,6 +134,7 @@ namespace App {
             }
         }
 
+        DownloadManager::initialize(user_agent);
         ImageLoader::initialize(renderer);
         NavBar::initialize(renderer);
         ContentPanel::initialize(renderer);
@@ -136,6 +144,7 @@ namespace App {
         NavBar::finalize();
         ContentPanel::finalize();
         ImageLoader::finalize();
+        DownloadManager::finalize();
         
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
@@ -146,8 +155,7 @@ namespace App {
 
         curl_global_cleanup();
 
-        //WHBLogUdpDeinit();
-        //WHBLogCafeDeinit();
+        WHBLogCafeDeinit();
     }
 
     bool run() {
@@ -159,6 +167,13 @@ namespace App {
             }
             catch (std::exception& e) {
                 WHBLogPrintf("ERROR in ThemezerAPI::process(): %s", e.what());
+            }
+
+            try {
+                DownloadManager::process();
+            }
+            catch (std::exception& e) {
+                WHBLogPrintf("ERROR in DownloadManager::process(): %s", e.what());
             }
             
             SDL_Event e;

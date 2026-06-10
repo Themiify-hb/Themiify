@@ -16,7 +16,7 @@
 #include <whb/log.h>
 
 #include "ThemeDetailsPopup.h"
-
+#include "ThemePreviewPopup.h"
 #include "../App.h"
 //#include "../DownloadManager.h"
 #include "../IconsFontAwesome4.h"
@@ -81,68 +81,71 @@ namespace ThemeDetailsPopup {
             return;
         }
 
+        
         switch (state) {
             case State::waiting:
-                ImGui::Text("Fetching theme details...");
-                break;
+            ImGui::Text("Fetching theme details...");
+            break;
             
             case State::error:
-                ImGui::TextWrapped("Error: %s", error.data());
-                break;
+            ImGui::TextWrapped("Error: %s", error.data());
+            break;
             
             case State::ready: {
                 ImGui::Text("Theme details");
                 ImGui::Separator();
-
+                
                 ImGui::TextWrapped("Name: %s", theme.name.data());
-
+                
                 ImGui::TextWrapped("Created: %s", theme.createdAt.data());
                 if (!theme.updatedAt.empty() && theme.updatedAt != theme.createdAt)
-                    ImGui::TextWrapped("Updated: %s", theme.updatedAt.data());
-
+                ImGui::TextWrapped("Updated: %s", theme.updatedAt.data());
+                
                 ImGui::Text("Downloads: %u", theme.downloadCount);
-
+                
                 ImGui::TextWrapped("Author: %s", theme.creator.username.data());
-
+                
                 if (theme.creator.avatarUrl) {
                     ImGui::SameLine();
                     auto avatar = ImageLoader::get(*theme.creator.avatarUrl);
                     ImGui::Image((ImTextureID)avatar, {64, 64});
                     ImGui::SetItemTooltip(*theme.creator.avatarUrl);
                 }
-
+                
                 ImGui::Text("Tags:");
                 ImGui::Indent();
                 for (auto& tag : theme.tags)
-                    ImGui::Text(ICON_FA_TAG " %s", tag.name.data());
+                ImGui::Text(ICON_FA_TAG " %s", tag.name.data());
                 ImGui::Unindent();
-
+                
                 auto collageSd = ImageLoader::get(theme.collagePreview.sdUrl);
                 ImGui::SetCursorPosX(
                     ImGui::GetCursorPosX() +
                     (ImGui::GetContentRegionAvail().x - 720.0f) * 0.5f
                 );
                 ImGui::Image((ImTextureID)collageSd, {720, 405});
-
+                
                 ImGui::Separator();
-
+                
                 if (ImGui::Button("Download")) {
                     // download stuff here
                 }
-
+                
                 ImGui::SameLine();
-
+                
                 if (ImGui::Button("Preview Theme")) {
-                    // preview stuff here
+                    ThemePreviewPopup::show(theme.launcherScreenshot.hdUrl, theme.waraWaraPlazaScreenshot.hdUrl);
                 }
                 
                 ImGui::Spacing();
-
+                
                 break;
             }
-
+            
             default:
-                break;
+            break;
         }
+        
+        ThemePreviewPopup::process_ui();
     }
 }

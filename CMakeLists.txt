@@ -13,13 +13,17 @@ add_executable(themiify
     src/graphql.cpp
     src/byte_stream.cpp
     src/tracer.cpp
+    src/humanize.cpp
     src/ThemezerAPI.cpp
     src/ImageLoader.cpp
+    src/DownloadManager.cpp
     src/screens/HomeScreen.cpp
     src/screens/DownloadScreen.cpp
     src/screens/InstalledScreen.cpp
     src/screens/ThemezerScreen.cpp
     src/screens/ThemeDetailsPopup.cpp
+    src/screens/ThemePreviewPopup.cpp
+    src/screens/DownloadThemePopup.cpp
 )
 wut_create_rpx(themiify)
 wut_create_wuhb(themiify

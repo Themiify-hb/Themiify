@@ -25,8 +25,11 @@
 
 #include "ThemezerScreen.h"
 #include "ThemeDetailsPopup.h"
+#include "DownloadThemePopup.h"
+#include "../utils.h"
 #include "../ImageLoader.h"
 #include "../ThemezerAPI.h"
+#include "../DownloadManager.h"
 #include "../IconsFontAwesome4.h"
 
 using ThemezerAPI::PageInfo;
@@ -132,7 +135,13 @@ namespace ThemezerScreen {
             ImGui::SameLine();
 
             if (ImGui::Button(ICON_FA_DOWNLOAD " Download")) {
-                // Download stuff here
+                if (DownloadManager::add("Theme: " + theme.name,
+                                         theme.downloadUrl,
+                                         std::string(std::string(THEMES_ROOT) + "/" + std::string(theme.slug + ".utheme")),
+                                         {},
+                                         {})) {                        
+                }
+                DownloadThemePopup::show();
             }
         }
     }
@@ -240,5 +249,6 @@ namespace ThemezerScreen {
         }
 
         ThemeDetailsPopup::process_ui();
+        DownloadThemePopup::process_ui();
     }
 }
