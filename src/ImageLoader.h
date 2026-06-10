@@ -10,14 +10,13 @@
 #pragma once
 
 #include <string>
-#include "utils.h"
 
-namespace App {
-    const std::string user_agent = "Themiify/" + std::string(THEMIIFY_VERSION) + " (Wii U)";
+#include <SDL2/SDL.h>
 
-    void initialize();
+namespace ImageLoader {
+    void initialize(SDL_Renderer *renderer);
 
     void finalize();
 
-    bool run();
+    SDL_Texture *get(const std::string& location);
 }

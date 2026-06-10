@@ -21,7 +21,11 @@
 #include <imgui.h>
 #include <misc/cpp/imgui_raii.h>
 
+#include <SDL2/SDL_image.h>
+
 #include "ThemezerScreen.h"
+#include "ThemeDetailsPopup.h"
+#include "../ImageLoader.h"
 #include "../ThemezerAPI.h"
 #include "../IconsFontAwesome4.h"
 
@@ -30,6 +34,8 @@ using ThemezerAPI::WiiuThemeSmall;
 using ThemezerAPI::WiiuThemeSmallVec;
 using ThemezerAPI::SortOrder;
 using ThemezerAPI::ItemSort;
+
+using namespace std::literals;
 
 namespace ThemezerScreen {
     uint32_t page = 0;
@@ -41,7 +47,7 @@ namespace ThemezerScreen {
     std::optional<PageInfo> page_info;
     std::optional<WiiuThemeSmallVec> themes;
     
-    std::string to_label(ItemSort arg) {
+    std::string sort_to_label(ItemSort arg) {
         switch (arg) {
             case ItemSort::CREATED:
                 return "Created";
@@ -56,7 +62,7 @@ namespace ThemezerScreen {
         }
     }
 
-    std::string to_label(SortOrder arg) {
+    std::string order_to_label(SortOrder arg) {
         switch (arg) {
             case SortOrder::ASC:
                 return ICON_FA_SORT_AMOUNT_ASC;
@@ -100,9 +106,39 @@ namespace ThemezerScreen {
         WHBLogPrintf("Hello from ThemezerScreen finalize!");
     }
 
-    void process_ui() {
+    void show(const WiiuThemeSmall& theme) {
         using namespace ImGui::RAII;
 
+        Child theme_frame{theme.uuid, {0, 320}, ImGuiChildFlags_NavFlattened 
+                         | ImGuiChildFlags_FrameStyle, ImGuiWindowFlags_NoSavedSettings};
+        if (!theme_frame)
+            return;
+
+        auto thumbnail = ImageLoader::get(theme.collagePreview.thumbUrl);
+        ImGui::Image((ImTextureID)thumbnail, {426, 240});
+
+        ImGui::SameLine();
+
+        {
+            Group right_group;
+            ImGui::TextWrapped("Name: %s", theme.name.data());
+            ImGui::TextWrapped("Author: %s", theme.creator.username.data());
+            ImGui::Text("Downloads: %u", theme.downloadCount);
+
+            if (ImGui::Button(ICON_FA_INFO_CIRCLE " Details")) {
+                ThemeDetailsPopup::show(theme.hexId);
+            }
+
+            ImGui::SameLine();
+
+            if (ImGui::Button(ICON_FA_DOWNLOAD " Download")) {
+                // Download stuff here
+            }
+        }
+    }
+
+    void process_ui() {
+        using namespace ImGui::RAII;
 
         Child themezer_content{"ThemezerContent", {0, 0}, ImGuiChildFlags_NavFlattened};
         if (!themezer_content)
@@ -152,7 +188,57 @@ namespace ThemezerScreen {
 
         // Sort and Filter controls
         {
-            //Disabled disable_when{ThemezerAPI::is_busy()};
+            Disabled disable_when{ThemezerAPI::is_busy()};
+
+            if (Child filter_order_search_box{"FilterOrderSearchBox", {0.0f, 75.0f}, ImGuiChildFlags_NavFlattened}) {
+                ImGui::SetNextItemWidth(220);
+                if (Combo sort_combo{"##sort_combo"s, sort_to_label(sort)}) {
+                    for (auto new_sort : ThemezerAPI::ItemSortList) {
+                        if (ImGui::Selectable(sort_to_label(new_sort), new_sort == sort)) {
+                            sort = new_sort;
+                            fetch_page(1);
+                        }
+                    }
+                }
+
+                ImGui::SameLine();
+
+                if (ImGui::Button(order_to_label(order))) {
+                    order = order == SortOrder::ASC ? SortOrder::DESC : SortOrder::ASC;
+                    fetch_page(1);
+                }        
+                
+                ImGui::SameLine();
+
+                SDL_WiiUSetSWKBDHintText("Input the name of a theme to search for it...");
+                SDL_WiiUSetSWKBDOKLabel("Search");
+                SDL_WiiUSetSWKBDShowWordSuggestions(SDL_TRUE);
+                SDL_WiiUSetSWKBDHighlightInitialText(SDL_TRUE);
+                ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+                ImGui::InputTextWithHint("##network_search"s, "Search..."s, query);
+                if (ImGui::IsItemDeactivatedAfterEdit()) {
+                    WHBLogPrintf("Searching: %s", query.c_str());
+                    fetch_page(1);
+                }
+            }
         }
+
+        // Themes List
+        {
+            Disabled disable_when(ThemezerAPI::is_busy());
+            auto& new_themes = themes;
+            if (!new_themes) {
+                ImGui::Text("Waiting for Themezer to respond...");
+            }
+            else {
+                if (Child theme_list{"ThemeList"}) {
+                    StyleVar child_border_size_style{ImGuiStyleVar_ChildBorderSize, 4.0f};
+                    for (auto& theme : *new_themes)
+                        show(theme);
+                }
+            }
+        }
+
+        ThemeDetailsPopup::process_ui();
     }
 }

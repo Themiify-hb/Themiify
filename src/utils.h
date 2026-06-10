@@ -9,3 +9,4 @@
 
 #pragma once
 
+#define THEMIIFY_VERSION "0.1"

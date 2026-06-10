@@ -14,10 +14,12 @@ add_executable(themiify
     src/byte_stream.cpp
     src/tracer.cpp
     src/ThemezerAPI.cpp
+    src/ImageLoader.cpp
     src/screens/HomeScreen.cpp
     src/screens/DownloadScreen.cpp
     src/screens/InstalledScreen.cpp
     src/screens/ThemezerScreen.cpp
+    src/screens/ThemeDetailsPopup.cpp
 )
 wut_create_rpx(themiify)
 wut_create_wuhb(themiify

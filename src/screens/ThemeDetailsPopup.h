@@ -10,14 +10,9 @@
 #pragma once
 
 #include <string>
-#include "utils.h"
 
-namespace App {
-    const std::string user_agent = "Themiify/" + std::string(THEMIIFY_VERSION) + " (Wii U)";
+namespace ThemeDetailsPopup {
+    void show(const std::string& request_id);
 
-    void initialize();
-
-    void finalize();
-
-    bool run();
+    void process_ui();
 }

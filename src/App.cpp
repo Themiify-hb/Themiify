@@ -11,6 +11,8 @@
 #include "NavBar.h"
 #include "ContentPanel.h"
 #include "ThemezerAPI.h"
+#include "ImageLoader.h"
+#include "utils.h"
 
 #include <vector>
 
@@ -21,6 +23,7 @@
 #include <coreinit/memory.h>
 
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_syswm.h>
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_mixer.h> 
 
@@ -96,14 +99,16 @@ namespace App {
         WHBLogCafeInit();
 
         curl_global_init(CURL_GLOBAL_DEFAULT);
-
-        ThemezerAPI::initialize("Themiify/1.0 (Wii U)");
+  
+        ThemezerAPI::initialize(user_agent);
     
         SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_GAMECONTROLLER);
         IMG_Init(IMG_INIT_JPG | IMG_INIT_PNG | IMG_INIT_WEBP);
         Mix_Init(MIX_INIT_MP3 | MIX_INIT_OGG);
 
         Mix_OpenAudioDevice(48000, MIX_DEFAULT_FORMAT, 2, 1024, NULL, SDL_AUDIO_ALLOW_ANY_CHANGE);
+
+        SDL_EventState(SDL_SYSWMEVENT, SDL_ENABLE);
 
         window = SDL_CreateWindow("Themiify", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1280, 720, SDL_WINDOW_SHOWN);
         renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
@@ -122,6 +127,7 @@ namespace App {
             }
         }
 
+        ImageLoader::initialize(renderer);
         NavBar::initialize(renderer);
         ContentPanel::initialize(renderer);
     }
@@ -129,6 +135,7 @@ namespace App {
     void finalize() {
         NavBar::finalize();
         ContentPanel::finalize();
+        ImageLoader::finalize();
         
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
@@ -139,8 +146,8 @@ namespace App {
 
         curl_global_cleanup();
 
-        WHBLogUdpDeinit();
-        WHBLogCafeDeinit();
+        //WHBLogUdpDeinit();
+        //WHBLogCafeDeinit();
     }
 
     bool run() {
@@ -181,6 +188,24 @@ namespace App {
                         }
                         break;
                     }
+                    /*case SDL_SYSWMEVENT: {
+                        auto *msg = e.syswm.msg;
+                        if (!msg)
+                            break;
+                        
+                        switch (msg->msg.wiiu.event) {
+                            case SDL_WIIU_SYSWM_SWKBD_OK_FINISH_EVENT: {
+                                swkbd_ok_selected = true;
+                                break;
+                            }
+
+                            default:
+                                break;
+                        }
+                        
+                    
+                    }*/
+
                     default:
                         break;
                 }
