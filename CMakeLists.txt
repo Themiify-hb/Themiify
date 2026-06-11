@@ -36,10 +36,6 @@ wut_create_wuhb(themiify
     DRCSPLASH meta/drc-splash.png
 )
 
-# For libmocha
-target_include_directories(themiify PRIVATE "$ENV{DEVKITPRO}/wut/usr/include")
-target_link_directories(themiify PRIVATE "$ENV{DEVKITPRO}/wut/usr/lib")
-
 find_package(PkgConfig REQUIRED)
 
 pkg_check_modules(sdl2 REQUIRED IMPORTED_TARGET sdl2)
@@ -54,6 +50,27 @@ pkg_check_modules(libcurl REQUIRED IMPORTED_TARGET libcurl)
 add_subdirectory(external)
 
 target_link_libraries(themiify PRIVATE
-    PkgConfig::sdl2 PkgConfig::SDL2_mixer PkgConfig::SDL2_image PkgConfig::freetype2 
-    PkgConfig::harfbuzz PkgConfig::libpng PkgConfig::libzip PkgConfig::libcurl bz2 mocha imgui glaze
+    bz2
+    glaze
+    imgui
+    mocha
+    PkgConfig::freetype2 
+    PkgConfig::harfbuzz
+    PkgConfig::libcurl
+    PkgConfig::libpng
+    PkgConfig::libzip
+    PkgConfig::sdl2
+    PkgConfig::SDL2_image
+    PkgConfig::SDL2_mixer
+)
+
+# run program using wiiload
+
+find_program(WIILOAD_BIN wiiload ${TOOL_HINT})
+
+set(WIILOAD "tcp:wiiu" CACHE STRING "Environment variable for wiiload.")
+
+add_custom_target(run
+  COMMAND ${CMAKE_COMMAND} -E env WIILOAD=${WIILOAD} ${WIILOAD_BIN} themiify.wuhb
+  DEPENDS themiify.wuhb
 )

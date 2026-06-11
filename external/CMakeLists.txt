@@ -32,3 +32,40 @@ target_link_libraries(imgui PUBLIC PkgConfig::sdl2 PkgConfig::freetype2)
 add_library(glaze INTERFACE)
 
 target_include_directories(glaze INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/glaze/include)
+
+# mocha
+add_library(mocha STATIC
+    libmocha/source/disc_interface.c
+    libmocha/source/devoptab/devoptab_fsa.cpp
+    libmocha/source/devoptab/devoptab_fsa_link.cpp
+    libmocha/source/devoptab/devoptab_fsa_mkdir.cpp
+    libmocha/source/devoptab/devoptab_fsa_truncate.cpp
+    libmocha/source/devoptab/devoptab_fsa_rename.cpp
+    libmocha/source/devoptab/devoptab_fsa_write.cpp
+    libmocha/source/devoptab/devoptab_fsa_rmdir.cpp
+    libmocha/source/devoptab/devoptab_fsa_dirnext.cpp
+    libmocha/source/devoptab/devoptab_fsa_statvfs.cpp
+    libmocha/source/devoptab/devoptab_fsa_utimes.cpp
+    libmocha/source/devoptab/devoptab_fsa_chdir.cpp
+    libmocha/source/devoptab/devoptab_fsa_stat.cpp
+    libmocha/source/devoptab/devoptab_fsa_fstat.cpp
+    libmocha/source/devoptab/devoptab_fsa_utils.cpp
+    libmocha/source/devoptab/devoptab_fsa_seek.cpp
+    libmocha/source/devoptab/devoptab_fsa_open.cpp
+    libmocha/source/devoptab/devoptab_fsa_chmod.cpp
+    libmocha/source/devoptab/devoptab_fsa_dirreset.cpp
+    libmocha/source/devoptab/devoptab_fsa_fsync.cpp
+    libmocha/source/devoptab/devoptab_fsa_dirclose.cpp
+    libmocha/source/devoptab/devoptab_fsa_diropen.cpp
+    libmocha/source/devoptab/devoptab_fsa_close.cpp
+    libmocha/source/devoptab/devoptab_fsa_read.cpp
+    libmocha/source/devoptab/devoptab_fsa_fchmod.cpp
+    libmocha/source/devoptab/devoptab_fsa_unlink.cpp
+    libmocha/source/fsa.cpp
+    libmocha/source/utils.cpp
+)
+
+target_include_directories(mocha PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/libmocha/include
+)
+
