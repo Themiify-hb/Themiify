@@ -118,13 +118,22 @@ namespace ThemeDetailsPopup {
                 ImGui::Text(ICON_FA_TAG " %s", tag.name.data());
                 ImGui::Unindent();
                 
-                auto collageSd = ImageLoader::get(theme.collagePreview.sdUrl);
+                auto collageImg = ImageLoader::get(theme.collagePreview.sdUrl);
+                float collageWidth = 720;
                 ImGui::SetCursorPosX(
                     ImGui::GetCursorPosX() +
-                    (ImGui::GetContentRegionAvail().x - 720.0f) * 0.5f
+                    (ImGui::GetContentRegionAvail().x - collageWidth) * 0.5f
                 );
-                ImGui::Image((ImTextureID)collageSd, {720, 405});
-                
+
+                {
+                    ImGui::RAII::StyleVar no_padding{ImGuiStyleVar_FramePadding, {0.0f, 0.0f}};
+                    if (ImGui::ImageButton("collagePreviewSD",
+                                           (ImTextureID)collageImg,
+                                           {collageWidth, 405})) {
+                        ThemePreviewPopup::show(theme.launcherScreenshot.hdUrl, theme.waraWaraPlazaScreenshot.hdUrl);
+                    }
+                }
+
                 ImGui::Separator();
                 
                 if (ImGui::Button("Download")) {
