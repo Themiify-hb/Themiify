@@ -29,11 +29,6 @@
 #define MEN2_PATH "Common/Package/Men2.pack"
 #define CAFE_BARISTA_MEN_PATH "Common/Sound/Men/cafe_barista_men.bfsar"
 
-#define BACKGROUND_COLOUR (0x00382AFF)
-#define BACKGROUND_ERR_COLOUR (0x750000FF)
-#define BACKGROUND_WARNING_COLOUR (0xAAAA00FF)
-#define BACKGROUND_SUCCESS_COLOUR (0x007500FF)
-
 inline bool CreateParentDirectories(std::string inputPath) {
     std::filesystem::path fullPath = inputPath;
     std::filesystem::path parentPath = fullPath.parent_path();

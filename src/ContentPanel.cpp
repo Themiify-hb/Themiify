@@ -10,21 +10,21 @@
 #include "ContentPanel.h"
 
 #include "screens/HomeScreen.h"
-#include "screens/InstalledScreen.h"
+#include "screens/ManageThemesScreen.h"
 #include "screens/ThemezerScreen.h"
 #include "screens/DownloadScreen.h"
 
 namespace ContentPanel {
     void initialize(SDL_Renderer *renderer) {
         HomeScreen::initialize(renderer);
-        InstalledScreen::initialize(renderer);
+        ManageThemesScreen::initialize(renderer);
         ThemezerScreen::initialize(renderer);
         DownloadScreen::initialize(renderer);
     }
 
     void finalize() {
         HomeScreen::finalize();
-        InstalledScreen::finalize();
+        ManageThemesScreen::finalize();
         ThemezerScreen::finalize();
         DownloadScreen::finalize();
     }
@@ -35,8 +35,8 @@ namespace ContentPanel {
                 HomeScreen::process_ui();
                 break;
             
-            case NavBar::Tab::installed:
-                InstalledScreen::process_ui();
+            case NavBar::Tab::manage_themes:
+                ManageThemesScreen::process_ui();
                 break;
 
             case NavBar::Tab::misc:

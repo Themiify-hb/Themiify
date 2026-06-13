@@ -24,6 +24,7 @@
 #include "ThemezerScreen.h"
 #include "ThemeDetailsPopup.h"
 #include "DownloadThemePopup.h"
+#include "InstallThemePopup.h"
 #include "../utils.h"
 #include "../ImageLoader.h"
 #include "../ThemezerAPI.h"
@@ -244,5 +245,6 @@ namespace ThemezerScreen {
 
         ThemeDetailsPopup::process_ui();
         DownloadThemePopup::process_ui();
+        InstallThemePopup::process_ui();
     }
 }

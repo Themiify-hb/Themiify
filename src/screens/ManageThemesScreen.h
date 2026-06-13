@@ -11,22 +11,12 @@
 
 #include <SDL2/SDL.h>
 
-namespace NavBar {
-    enum Tab {
-        home,
-        manage_themes,
-        misc,
-        themezer,
-        download,
-    };
-
+namespace ManageThemesScreen {
     void initialize(SDL_Renderer *renderer);
 
     void finalize();
 
+    void force_refresh();
+
     void process_ui();
-
-    Tab get_current_tab();
-
-    void set_current_tab(Tab tab);
 }

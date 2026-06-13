@@ -1,6 +1,6 @@
 /*
  * Themiify - A theme manager for the Nintendo Wii U
- * Copyright (C) 2026 Fangal-Airbag  
+ * Copyright (C) 2026 Fangal-Airbag
  * Copyright (C) 2026 AlphaCraft9658
  * Copyright (C) 2026  Daniel K. O. <dkosmari>
  *
@@ -25,6 +25,7 @@
 
 #include "DownloadManager.h"
 #include "screens/DownloadThemePopup.h"
+#include "utils.h"
 #include "tracer.hpp"
 
 using std::cout;
@@ -42,9 +43,19 @@ namespace DownloadManager {
         success_function_t success_func;
         failure_function_t failure_func;
 
-        CURL* easy = nullptr;
-        std::filebuf file;
-        bool content_started = false;
+        CURL* utheme_easy = nullptr;
+        CURL* thumbnail_easy = nullptr;
+
+        std::filebuf utheme_file;
+        std::filebuf thumbnail_file;
+
+        std::filesystem::path thumbnail_output;
+
+        bool utheme_content_started = false;
+        bool thumbnail_content_started = false;
+
+        bool utheme_done = false;
+        bool thumbnail_done = false;
 
         Download(Download&&) = delete;
 
@@ -55,11 +66,37 @@ namespace DownloadManager {
               success_func{std::move(success_func_)},
               failure_func{std::move(failure_func_)}
         {
-            create_directories(info->output.parent_path());
+            create_directories(info->utheme_output.parent_path());
+            create_directories(info->thumbnail_output.parent_path());
 
-            if (!file.open(info->output, std::ios::out | std::ios::binary | std::ios::trunc))
-                throw std::runtime_error{"could not open "s + info->output.string()};
+            if (!utheme_file.open(info->utheme_output, std::ios::out | std::ios::binary | std::ios::trunc))
+                throw std::runtime_error{"could not open "s + info->utheme_output.string()};
 
+            if (!thumbnail_file.open(info->thumbnail_output, std::ios::out | std::ios::binary | std::ios::trunc))
+                throw std::runtime_error{"could not open "s + info->thumbnail_output.string()};
+
+            setup_easy(utheme_easy, info->utheme_url, this, true);
+            setup_easy(thumbnail_easy, info->thumbnail_url, this, false);
+        }
+
+        ~Download()
+        {
+            if (utheme_easy) {
+                curl_easy_cleanup(utheme_easy);
+                utheme_easy = nullptr;
+            }
+
+            if (thumbnail_easy) {
+                curl_easy_cleanup(thumbnail_easy);
+                thumbnail_easy = nullptr;
+            }
+        }
+
+        static void setup_easy(CURL*& easy,
+                               const std::string& url,
+                               Download* self,
+                               bool is_utheme)
+        {
             easy = curl_easy_init();
             if (!easy)
                 throw std::runtime_error{"curl_easy_init() failed"};
@@ -67,7 +104,7 @@ namespace DownloadManager {
             if (!user_agent.empty())
                 curl_easy_setopt(easy, CURLOPT_USERAGENT, user_agent.c_str());
 
-            curl_easy_setopt(easy, CURLOPT_URL, info->url.c_str());
+            curl_easy_setopt(easy, CURLOPT_URL, url.c_str());
             curl_easy_setopt(easy, CURLOPT_FOLLOWLOCATION, 1L);
             curl_easy_setopt(easy, CURLOPT_AUTOREFERER, 1L);
             curl_easy_setopt(easy, CURLOPT_SSL_VERIFYPEER, 0L);
@@ -77,30 +114,34 @@ namespace DownloadManager {
             curl_easy_setopt(easy, CURLOPT_TCP_NODELAY, 0L);
             curl_easy_setopt(easy, CURLOPT_FAILONERROR, 1L);
 
-            curl_easy_setopt(easy, CURLOPT_WRITEDATA, this);
-            curl_easy_setopt(easy, CURLOPT_WRITEFUNCTION, write_callback);
+            curl_easy_setopt(easy, CURLOPT_WRITEDATA, self);
+            curl_easy_setopt(easy,
+                             CURLOPT_WRITEFUNCTION,
+                             is_utheme ? utheme_write_callback : thumbnail_write_callback);
 
             curl_easy_setopt(easy, CURLOPT_NOPROGRESS, 0L);
-            curl_easy_setopt(easy, CURLOPT_XFERINFODATA, this);
+            curl_easy_setopt(easy, CURLOPT_XFERINFODATA, self);
             curl_easy_setopt(easy, CURLOPT_XFERINFOFUNCTION, progress_callback);
         }
 
-        ~Download()
-        {
-            if (easy) {
-                curl_easy_cleanup(easy);
-                easy = nullptr;
-            }
-        }
-
-        static size_t write_callback(char* ptr, size_t size, size_t nmemb, void* userdata)
+        static size_t utheme_write_callback(char* ptr, size_t size, size_t nmemb, void* userdata)
         {
             auto* self = static_cast<Download*>(userdata);
             const size_t total = size * nmemb;
 
-            self->content_started = true;
+            self->utheme_content_started = true;
 
-            return self->file.sputn(ptr, total);
+            return self->utheme_file.sputn(ptr, total);
+        }
+
+        static size_t thumbnail_write_callback(char* ptr, size_t size, size_t nmemb, void* userdata)
+        {
+            auto* self = static_cast<Download*>(userdata);
+            const size_t total = size * nmemb;
+
+            self->thumbnail_content_started = true;
+
+            return self->thumbnail_file.sputn(ptr, total);
         }
 
         static int progress_callback(void* userdata,
@@ -111,19 +152,41 @@ namespace DownloadManager {
         {
             auto* self = static_cast<Download*>(userdata);
 
-            if (self->content_started && dltotal)
+            if (self->utheme_content_started && dltotal)
                 self->info->progress = float(dlnow) / float(dltotal);
 
             double speed = 0.0;
-            curl_easy_getinfo(self->easy, CURLINFO_SPEED_DOWNLOAD_T, &speed);
+
+            if (self->utheme_easy)
+                curl_easy_getinfo(self->utheme_easy, CURLINFO_SPEED_DOWNLOAD_T, &speed);
+
             self->info->speed = static_cast<std::uint64_t>(speed);
 
             return 0;
         }
 
+        bool owns(CURL* easy) const
+        {
+            return easy == utheme_easy || easy == thumbnail_easy;
+        }
+
+        void mark_done(CURL* easy)
+        {
+            if (easy == utheme_easy)
+                utheme_done = true;
+            else if (easy == thumbnail_easy)
+                thumbnail_done = true;
+        }
+
+        bool is_done() const
+        {
+            return utheme_done && thumbnail_done;
+        }
+
         void finish()
         {
-            file.close();
+            utheme_file.close();
+            thumbnail_file.close();
 
             if (success_func)
                 success_func(*info);
@@ -131,7 +194,8 @@ namespace DownloadManager {
 
         void finish(const std::exception& e) noexcept
         try {
-            file.close();
+            utheme_file.close();
+            thumbnail_file.close();
 
             if (failure_func)
                 failure_func(e);
@@ -162,8 +226,11 @@ namespace DownloadManager {
         ~Resources() noexcept
         {
             for (auto& d : downloads) {
-                if (d.easy)
-                    curl_multi_remove_handle(multi, d.easy);
+                if (d.utheme_easy)
+                    curl_multi_remove_handle(multi, d.utheme_easy);
+
+                if (d.thumbnail_easy)
+                    curl_multi_remove_handle(multi, d.thumbnail_easy);
             }
 
             if (multi) {
@@ -187,7 +254,7 @@ namespace DownloadManager {
                 auto completed = std::ranges::find_if(
                     downloads,
                     [completed_easy](const Download& d) {
-                        return d.easy == completed_easy;
+                        return d.owns(completed_easy);
                     }
                 );
 
@@ -201,18 +268,36 @@ namespace DownloadManager {
                         };
                     }
 
-                    completed->finish();
+                    completed->mark_done(completed_easy);
                 }
                 catch (std::exception& e) {
-                    cerr << "DownloadManager::Resources::process(): ERROR: " << e.what() << endl;
+                    cerr << "DownloadManager::Resources::process(): ERROR: "
+                         << e.what()
+                         << endl;
 
                     if (completed != downloads.end())
                         completed->finish(e);
+
+                    if (completed != downloads.end()) {
+                        if (completed->utheme_easy)
+                            curl_multi_remove_handle(multi, completed->utheme_easy);
+
+                        if (completed->thumbnail_easy)
+                            curl_multi_remove_handle(multi, completed->thumbnail_easy);
+
+                        downloads.erase(completed);
+                    }
+
+                    continue;
                 }
 
                 if (completed != downloads.end()) {
-                    curl_multi_remove_handle(multi, completed->easy);
-                    downloads.erase(completed);
+                    curl_multi_remove_handle(multi, completed_easy);
+
+                    if (completed->is_done()) {
+                        completed->finish();
+                        downloads.erase(completed);
+                    }
                 }
             }
         }
@@ -223,20 +308,27 @@ namespace DownloadManager {
         }
 
         bool add(const std::string& label,
-                 const std::string& url,
-                 const std::filesystem::path& output,
+                 const std::string& utheme_url,
+                 const std::string& thumbnail_url,
+                 const std::filesystem::path& utheme_output,
+                 const std::filesystem::path& thumbnail_output,
                  success_function_t success_func,
                  failure_function_t failure_func)
         {
             for (auto& entry : infos) {
-                if (entry->url == url)
+                if (entry->utheme_url == utheme_url)
                     return false;
             }
 
+            auto sanitized_utheme_output = removeNonASCII(std::string(utheme_output));
+            auto sanitized_thumbnail_output = removeNonASCII(std::string(thumbnail_output));
+
             auto info = std::make_shared<Info>(
                 label,
-                url,
-                output,
+                utheme_url,
+                thumbnail_url,
+                sanitized_utheme_output,
+                sanitized_thumbnail_output,
                 0.0f,
                 0,
                 State::queued
@@ -252,12 +344,15 @@ namespace DownloadManager {
 
             auto& download = downloads.back();
 
-            curl_multi_add_handle(multi, download.easy);
+            curl_multi_add_handle(multi, download.utheme_easy);
+            curl_multi_add_handle(multi, download.thumbnail_easy);
 
             cout << "Added download:"
                  << "\n    " << label
-                 << "\n    " << url
-                 << "\n    " << output
+                 << "\n    " << utheme_url
+                 << "\n    " << thumbnail_url
+                 << "\n    " << utheme_output
+                 << "\n    " << thumbnail_output
                  << endl;
 
             return true;
@@ -313,8 +408,10 @@ namespace DownloadManager {
     }
 
     bool add(const std::string& label,
-             const std::string& url,
-             const std::filesystem::path& output,
+             const std::string& utheme_url,
+             const std::string& thumbnail_url,
+             const std::filesystem::path& utheme_output,
+             const std::filesystem::path& thumbnail_output,
              success_function_t success_func,
              failure_function_t failure_func)
     {
@@ -323,8 +420,10 @@ namespace DownloadManager {
 
         return res->add(
             label,
-            url,
-            output,
+            utheme_url,
+            thumbnail_url,
+            utheme_output,
+            thumbnail_output,
             std::move(success_func),
             std::move(failure_func)
         );

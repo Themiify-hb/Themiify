@@ -8,6 +8,7 @@
  */
 
 #include "NavBar.h"
+#include "screens/ManageThemesScreen.h"
 #include "utils.h"
 
 #include <SDL2/SDL_image.h>
@@ -23,8 +24,8 @@ namespace NavBar {
     SDL_Texture *home_button_normal_tex;
     SDL_Texture *home_button_active_tex;
 
-    SDL_Texture *installed_button_normal_tex;
-    SDL_Texture *installed_button_active_tex;
+    SDL_Texture *manage_themes_button_normal_tex;
+    SDL_Texture *manage_themes_button_active_tex;
     
     SDL_Texture *misc_button_normal_tex;
     SDL_Texture *misc_button_active_tex;
@@ -43,8 +44,8 @@ namespace NavBar {
         home_button_normal_tex = IMG_LoadTexture(renderer, "fs:/vol/content/ui/home-button-normal.png");
         home_button_active_tex = IMG_LoadTexture(renderer, "fs:/vol/content/ui/home-button-active.png");
 
-        installed_button_normal_tex = IMG_LoadTexture(renderer, "fs:/vol/content/ui/installed-button-normal.png");
-        installed_button_active_tex = IMG_LoadTexture(renderer, "fs:/vol/content/ui/installed-button-active.png");
+        manage_themes_button_normal_tex = IMG_LoadTexture(renderer, "fs:/vol/content/ui/manage-themes-button-normal.png");
+        manage_themes_button_active_tex = IMG_LoadTexture(renderer, "fs:/vol/content/ui/manage-themes-button-active.png");
 
         misc_button_normal_tex = IMG_LoadTexture(renderer, "fs:/vol/content/ui/misc-button-normal.png");
         misc_button_active_tex = IMG_LoadTexture(renderer, "fs:/vol/content/ui/misc-button-active.png");
@@ -62,8 +63,8 @@ namespace NavBar {
         SDL_DestroyTexture(home_button_normal_tex);
         SDL_DestroyTexture(home_button_active_tex);
 
-        SDL_DestroyTexture(installed_button_normal_tex);
-        SDL_DestroyTexture(installed_button_active_tex);
+        SDL_DestroyTexture(manage_themes_button_normal_tex);
+        SDL_DestroyTexture(manage_themes_button_active_tex);
 
         SDL_DestroyTexture(misc_button_normal_tex);
         SDL_DestroyTexture(misc_button_active_tex);
@@ -101,12 +102,22 @@ namespace NavBar {
                 }
             }
 
-            if (current_tab == Tab::installed) {
-                ImGui::ImageButton("installed_button_active", installed_button_active_tex, ImVec2(148, 96));
+            if (current_tab == Tab::manage_themes) {
+                ImGui::ImageButton("installed_button_active", manage_themes_button_active_tex, ImVec2(148, 96));
             }
             else {
-                if (ImGui::ImageButton("installed_button_normal", installed_button_normal_tex, ImVec2(148, 96))) {
-                    current_tab = Tab::installed;
+                if (ImGui::ImageButton("installed_button_normal", manage_themes_button_normal_tex, ImVec2(148, 96))) {
+                    current_tab = Tab::manage_themes;
+                }
+            }
+            
+            if (current_tab == Tab::themezer) {
+                ImGui::ImageButton("themezer_button_active", themezer_button_active_tex, ImVec2(148, 96));
+            }
+            else {
+                if (ImGui::ImageButton("themezer_button_normal", themezer_button_normal_tex, ImVec2(148, 96))) {
+                    current_tab = Tab::themezer;
+                    ManageThemesScreen::force_refresh();
                 }
             }
             
@@ -119,14 +130,6 @@ namespace NavBar {
                 }
             }
             
-            if (current_tab == Tab::themezer) {
-                ImGui::ImageButton("themezer_button_active", themezer_button_active_tex, ImVec2(148, 96));
-            }
-            else {
-                if (ImGui::ImageButton("themezer_button_normal", themezer_button_normal_tex, ImVec2(148, 96))) {
-                    current_tab = Tab::themezer;
-                }
-            }
             
             if (current_tab == Tab::download) {
                 ImGui::ImageButton("download_button_active", download_button_active_tex, ImVec2(148, 96));

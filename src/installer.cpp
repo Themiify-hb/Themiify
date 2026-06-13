@@ -6,13 +6,13 @@
 #include <algorithm>
 #include <unordered_map>
 #include <sstream>
+#include <cstdio>
 
 #include <zip.h>
 #include <glaze/glaze.hpp>
 #include "hips.hpp"
 #include <mocha/mocha.h>
 
-#include <whb/log.h>
 #include <sysapp/title.h>
 #include <coreinit/foreground.h>
 
@@ -364,8 +364,6 @@ namespace Installer {
                     WHBLogPrintf("%s failed to save to Themiify installed directory!", themeData.themeName.c_str());
                 }
             }
-
-            SetCurrentTheme(themeData.themeName, themeData.themeIDPath);
         }
         else {
             DeleteTheme(modpackPath, installPath);

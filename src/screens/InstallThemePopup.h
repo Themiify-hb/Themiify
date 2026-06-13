@@ -9,12 +9,11 @@
 
 #pragma once
 
-#include <SDL2/SDL.h>
+#include <filesystem>
+#include "../installer.h"
 
-namespace InstalledScreen {
-    void initialize(SDL_Renderer *renderer);
-
-    void finalize();
+namespace InstallThemePopup {
+    void show(const std::filesystem::path &uthemePath, Installer::theme_data themeData, bool confirmationCompleted, bool setCurrent);
 
     void process_ui();
 }

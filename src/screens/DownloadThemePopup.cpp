@@ -6,6 +6,7 @@
 #include <imgui_raii.h>
 
 #include "DownloadThemePopup.h"
+#include "InstallThemePopup.h"
 #include "../utils.h"
 #include "../DownloadManager.h"
 #include "../humanize.hpp"
@@ -31,6 +32,8 @@ namespace DownloadThemePopup {
     std::filesystem::path utheme_path;
 
     ThemezerAPI::WiiuThemeSmall theme;
+
+    bool set_current = true;
 
     void show(const ThemezerAPI::WiiuThemeSmall &theme_data) {
         state = State::confirmation;
@@ -86,7 +89,9 @@ namespace DownloadThemePopup {
                 if (ImGui::Button("Yes", button_size)) {
                     if (DownloadManager::add("Theme: " + theme.name,
                                             theme.downloadUrl,
+                                            theme.collagePreview.thumbUrl,
                                             std::string(std::string(THEMES_ROOT) + "/" + std::string(theme.slug + ".utheme")),
+                                            std::string(std::string(THEMIIFY_ROOT) + "/cache/thumbnails/" + std::string("Themezer" + theme.hexId + ".webp")),
                                             {},
                                             {})) {
                     }
@@ -112,7 +117,7 @@ namespace DownloadThemePopup {
                 // Afterwards
                 auto& info = infos.at(0);
 
-                utheme_path = info->output;
+                utheme_path = info->utheme_output;
                 
                 {
                     Font title_font{nullptr, 35};
@@ -122,9 +127,9 @@ namespace DownloadThemePopup {
                 
                 ImGui::Text(info->label);
                 
-                ImGui::Text(info->url);
+                ImGui::Text(info->utheme_url);
                 
-                ImGui::Text("Saving to: %s", info->output.filename().c_str());
+                ImGui::Text("Saving to: %s", info->utheme_output.filename().c_str());
                 
                 //auto speed = humanize::value_bin(info->speed) + "B/s";
                 //ImGui::Text("DL speed: %s", speed.data());
@@ -150,6 +155,8 @@ namespace DownloadThemePopup {
 
                 ImGui::Text("Would you like to now install this theme for use with the\nStyleMiiU plugin?");
 
+                ImGui::Checkbox("Set as current StyleMiiU theme after installation", &set_current);
+
                 ImGui::Spacing();
 
                 ImVec2 button_size{180.0f, 60.0f};
@@ -165,13 +172,11 @@ namespace DownloadThemePopup {
                 if (ImGui::Button("Yes", button_size)) {
                     Installer::theme_data theme_data;
                     Installer::GetThemeMetadata(utheme_path, &theme_data);
-                    if (Installer::InstallTheme(utheme_path, theme_data)) {
-                        ImGui::CloseCurrentPopup();
-                        state = State::hidden;   
-                    }
-                    else {
-                        cout << ":(" << endl;
-                    }
+
+                    ImGui::CloseCurrentPopup();
+                    state = State::hidden;
+
+                    InstallThemePopup::show(utheme_path, theme_data, true, set_current);
                 }
 
                 ImGui::SameLine();
