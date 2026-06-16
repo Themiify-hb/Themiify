@@ -19,14 +19,15 @@ add_executable(themiify
     src/ImageLoader.cpp
     src/DownloadManager.cpp
     src/screens/HomeScreen.cpp
-    src/screens/DownloadScreen.cpp
     src/screens/ManageThemesScreen.cpp
     src/screens/ThemezerScreen.cpp
+    src/screens/SettingsScreen.cpp
     src/screens/ThemeDetailsPopup.cpp
     src/screens/ThemePreviewPopup.cpp
     src/screens/DownloadThemePopup.cpp
     src/screens/InstallThemePopup.cpp
     src/screens/DeleteThemePopup.cpp
+    src/screens/SettingsPopup.cpp
 )
 wut_create_rpx(themiify)
 wut_create_wuhb(themiify
@@ -44,6 +45,7 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(sdl2 REQUIRED IMPORTED_TARGET sdl2)
 pkg_check_modules(SDL2_mixer REQUIRED IMPORTED_TARGET SDL2_mixer)
 pkg_check_modules(SDL2_image REQUIRED IMPORTED_TARGET SDL2_image)
+pkg_check_modules(zlib REQUIRED IMPORTED_TARGET zlib)
 pkg_check_modules(freetype2 REQUIRED IMPORTED_TARGET freetype2)
 pkg_check_modules(harfbuzz REQUIRED IMPORTED_TARGET harfbuzz)
 pkg_check_modules(libpng REQUIRED IMPORTED_TARGET libpng)
@@ -58,6 +60,7 @@ target_link_libraries(themiify PRIVATE
     glaze
     imgui
     mocha
+    PkgConfig::zlib
     PkgConfig::freetype2 
     PkgConfig::harfbuzz
     PkgConfig::libcurl

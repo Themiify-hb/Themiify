@@ -376,7 +376,7 @@ namespace Installer {
     bool DeleteTheme(std::string modpackPath, std::string installPath) {
         std::filesystem::path install_path = installPath;
         // Dumb hack but I don't wanna change more stuff
-        std::filesystem::path thumbnailPath = std::string(THEMIIFY_ROOT) + "/cache/thumbnails/" + std::string(install_path.stem()) + ".webp";
+        std::filesystem::path thumbnailPath = std::string(THEMIIFY_THUMBNAILS) + "/" + std::string(install_path.stem()) + ".webp";
 
         DeletePath(modpackPath);
         DeletePath(installPath);

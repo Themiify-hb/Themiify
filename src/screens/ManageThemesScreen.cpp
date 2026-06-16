@@ -6,6 +6,16 @@
  *
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
+#include <iostream>
+#include <unordered_map>
+#include <cctype>
+#include <algorithm>
+
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
+
+#include <imgui.h>
+#include <imgui_raii.h>
 
 #include "ManageThemesScreen.h"
 #include "InstallThemePopup.h"
@@ -14,15 +24,6 @@
 #include "../installer.h"
 #include "../utils.h"
 #include "../IconsFontAwesome4.h"
-
-#include <iostream>
-#include <unordered_map>
-
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
-
-#include <imgui.h>
-#include <imgui_raii.h>
 
 using std::cout;
 using std::endl;
@@ -53,6 +54,61 @@ namespace ManageThemesScreen {
     std::string search;
     std::string current_theme;
 
+    SDL_Texture *getThumbnail(const std::filesystem::path& path) {
+        std::string key = path.string();
+
+        auto it = thumbnail_cache.find(key);
+        if (it != thumbnail_cache.end())
+            return it->second;
+
+        SDL_Texture* tex = IMG_LoadTexture(manage_renderer, key.c_str());
+
+        if (!tex)
+            return placeholder_thumbnail;
+
+        thumbnail_cache[key] = tex;
+        return tex;
+    }   
+
+    std::string normalize_search(std::string s) {
+        std::ranges::transform(s, s.begin(), [](unsigned char c) {
+            return std::tolower(c);
+        });
+
+        return s;
+    }
+
+    int similarity_score(const std::string& name, const std::string& search) {
+        std::string n = normalize_search(name);
+        std::string q = normalize_search(search);
+
+        if (q.empty())
+            return 0;
+
+        if (n == q)
+            return 10000;
+
+        if (n.starts_with(q))
+            return 8000 - static_cast<int>(n.size());
+
+        if (n.contains(q))
+            return 6000 - static_cast<int>(n.find(q));
+
+        int score = 0;
+        std::size_t pos = 0;
+
+        for (char c : q) {
+            pos = n.find(c, pos);
+            if (pos == std::string::npos)
+                return -1;
+
+            score += 10;
+            ++pos;
+        }
+
+        return score;
+    }
+
     void scan_local_themes() {
         local_themes.clear();
 
@@ -68,9 +124,19 @@ namespace ManageThemesScreen {
         installed_themes.clear();
 
         for (auto& entry : std::filesystem::directory_iterator(THEMIIFY_INSTALLED_THEMES)) {
-            if (entry.is_regular_file() && entry.path().extension() == ".json") {
-                json_files.push_back(entry.path());
+            if (!entry.is_regular_file() || entry.path().extension() != ".json")
+                continue;
+
+            Installer::installed_theme_data data;
+            Installer::GetInstalledThemeMetadata(entry.path(), &data);
+
+            if (!std::filesystem::exists(data.installedThemePath)) {
+                DeletePath(entry.path());
+                continue;
             }
+
+            json_files.push_back(entry.path());
+            installed_themes.push_back(data);
         }
     }
 
@@ -103,22 +169,6 @@ namespace ManageThemesScreen {
     void force_refresh() {
         local_themes_refresh = true;
     }
-
-    SDL_Texture *get_thumbnail(const std::filesystem::path& path) {
-        std::string key = path.string();
-
-        auto it = thumbnail_cache.find(key);
-        if (it != thumbnail_cache.end())
-            return it->second;
-
-        SDL_Texture* tex = IMG_LoadTexture(manage_renderer, key.c_str());
-
-        if (!tex)
-            return placeholder_thumbnail;
-
-        thumbnail_cache[key] = tex;
-        return tex;
-    }    
 
     void process_ui() {
         using namespace ImGui::RAII;
@@ -170,16 +220,18 @@ namespace ManageThemesScreen {
 
                 ImGui::SameLine();
 
+                SDL_WiiUSetSWKBDKeyboardMode(SDL_WIIU_SWKBD_KEYBOARD_MODE_FULL);
                 SDL_WiiUSetSWKBDHintText("Input the name of a theme to search for it...");
                 SDL_WiiUSetSWKBDOKLabel("Search");
                 SDL_WiiUSetSWKBDShowWordSuggestions(SDL_TRUE);
                 SDL_WiiUSetSWKBDHighlightInitialText(SDL_TRUE);
+
                 ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
                 ImGui::InputTextWithHint("##local_search"s, "Search..."s, search);
+
                 if (ImGui::IsItemDeactivatedAfterEdit()) {
                     cout << "Searching: " << search << endl;
-                    //fetch_page(1);
-                }                
+                }
 
                 ImGui::Spacing();
 
@@ -188,44 +240,48 @@ namespace ManageThemesScreen {
                     current_theme = Installer::GetCurrentTheme();
 
                     auto current_it = std::find_if(
-                        json_files.begin(),
-                        json_files.end(),
-                        [&](const auto& path)
-                        {
-                            Installer::installed_theme_data data;
-                            Installer::GetInstalledThemeMetadata(path, &data);
-
+                        installed_themes.begin(),
+                        installed_themes.end(),
+                        [&](const auto& data) {
                             return data.themeName + " (" + data.themeIDPath + ")" == current_theme;
                         }
                     );
 
-                    if (current_it != json_files.end())
-                        std::rotate(json_files.begin(), current_it, current_it + 1);
+                    if (current_it != installed_themes.end()) {
+                        auto index = std::distance(installed_themes.begin(), current_it);
+
+                        std::rotate(installed_themes.begin(), current_it, current_it + 1);
+                        std::rotate(json_files.begin(), json_files.begin() + index, json_files.begin() + index + 1);
+                    }
 
                     local_themes_refresh = false;
                 }
 
-                for (auto json = json_files.begin(); json != json_files.end(); ) {
-                    Installer::GetInstalledThemeMetadata(*json, &theme_data);
+                std::vector<std::size_t> visible_indexes;
 
-                    std::filesystem::path current_json_path = *json;
+                for (std::size_t i = 0; i < installed_themes.size(); ++i) {
+                    int score = similarity_score(installed_themes[i].themeName, search);
 
-                    if (!std::filesystem::exists(theme_data.installedThemePath)) {
-                        // Modpack doesn't exist so we should delete the json because the user "uninstalled" the theme themselves
-                        DeletePath(*json);
-                        json = json_files.erase(json);
-                        force_refresh();
-                        continue;
-                    }
+                    if (search.empty() || score >= 0)
+                        visible_indexes.push_back(i);
+                }
 
-                    ++json;
+                if (!search.empty()) {
+                    std::ranges::sort(
+                        visible_indexes,
+                        [&](std::size_t a, std::size_t b) {
+                            return similarity_score(installed_themes[a].themeName, search)
+                                > similarity_score(installed_themes[b].themeName, search);
+                        }
+                    );
+                }
 
-                    if (std::string(theme_data.themeName + " (" + theme_data.themeIDPath + ")") == current_theme) {
-                        is_current_theme = true;
-                    }
-                    else {
-                        is_current_theme = false;
-                    }
+                for (std::size_t index : visible_indexes) {
+                    auto& theme_data = installed_themes[index];
+                    auto& current_json_path = json_files[index];
+
+                    bool is_current_theme =
+                        theme_data.themeName + " (" + theme_data.themeIDPath + ")" == current_theme;
 
                     Child theme_frame{
                         theme_data.themeIDPath,
@@ -280,7 +336,6 @@ namespace ManageThemesScreen {
                         );
 
                         const char* star = ICON_FA_STAR;
-
                         ImVec2 star_size = ImGui::CalcTextSize(star);
 
                         draw_list->AddText(
@@ -293,31 +348,32 @@ namespace ManageThemesScreen {
                         );
                     }
 
-                    std::filesystem::path thumbnailPath = std::string(std::string(THEMIIFY_ROOT) + "/cache/thumbnails/" + theme_data.themeIDPath + ".webp");
-                    SDL_Texture* thumbnail = placeholder_thumbnail;
+                    std::filesystem::path thumbnailPath =
+                        std::string(THEMIIFY_THUMBNAILS) + "/" +
+                        theme_data.themeIDPath +
+                        ".webp";
 
-                    if (std::filesystem::exists(thumbnailPath)) {
-                        thumbnail = get_thumbnail(thumbnailPath);
-                    }
+                    SDL_Texture* thumbnail = getThumbnail(thumbnailPath);
 
                     ImGui::Image((ImTextureID)thumbnail, {426, 240});
 
                     ImGui::SameLine();
 
-
                     {
                         Group right_group;
-                        ImGui::TextWrapped("Name: %s", theme_data.themeName.c_str());
-                        ImGui::TextWrapped("Author: %s", theme_data.themeAuthor.c_str());
+
+                        ImGui::TextWrapped("%s", theme_data.themeName.c_str());
+                        ImGui::TextWrapped("by: %s", theme_data.themeAuthor.c_str());
 
                         if (ImGui::Button(ICON_FA_INFO_CIRCLE " Details")) {
                             ThemeDetailsPopup::show_local(theme_data, thumbnail, is_current_theme);
                         }
-                        
+
                         ImGui::SameLine();
-                        
+
                         {
                             Disabled disable_when{is_current_theme};
+
                             if (ImGui::Button(ICON_FA_STAR " Make Default")) {
                                 Installer::SetCurrentTheme(theme_data.themeName, theme_data.themeIDPath);
                                 force_refresh();
@@ -331,6 +387,7 @@ namespace ManageThemesScreen {
                         }
                     }
                 }
+
                 break;
             }
             case Tab::install_local:

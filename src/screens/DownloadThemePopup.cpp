@@ -91,7 +91,7 @@ namespace DownloadThemePopup {
                                             theme.downloadUrl,
                                             theme.collagePreview.thumbUrl,
                                             std::string(std::string(THEMES_ROOT) + "/" + std::string(theme.slug + ".utheme")),
-                                            std::string(std::string(THEMIIFY_ROOT) + "/cache/thumbnails/" + std::string("Themezer" + theme.hexId + ".webp")),
+                                            std::string(std::string(THEMIIFY_THUMBNAILS) + "/" + std::string("Themezer" + theme.hexId + ".webp")),
                                             {},
                                             {})) {
                     }

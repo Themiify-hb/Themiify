@@ -15,9 +15,9 @@ namespace NavBar {
     enum Tab {
         home,
         manage_themes,
-        misc,
+        settings,
         themezer,
-        download,
+        exit,
     };
 
     void initialize(SDL_Renderer *renderer);

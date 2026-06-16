@@ -12,6 +12,8 @@
 #include <SDL2/SDL.h>
 
 namespace HomeScreen {
+    void force_refresh();
+    
     void initialize(SDL_Renderer *renderer);
 
     void finalize();

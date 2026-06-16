@@ -168,10 +168,8 @@ namespace InstallThemePopup {
                 
                 ImVec2 button_size{180.0f, 60.0f};
 
-                float spacing = ImGui::GetStyle().ItemSpacing.x;
-                float total_width = button_size.x * 2.0f + spacing;
-
-                float start_x = (ImGui::GetContentRegionAvail().x - total_width) * 0.5f;
+                float start_x =
+                    (ImGui::GetContentRegionAvail().x - button_size.x) * 0.5f;
 
                 if (start_x > 0.0f)
                     ImGui::SetCursorPosX(ImGui::GetCursorPosX() + start_x);

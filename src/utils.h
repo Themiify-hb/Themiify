@@ -15,10 +15,13 @@
 
 #include <whb/log.h>
 
+#include <SDL2/SDL.h>
+
 #define THEMIIFY_VERSION "0.1"
 
 #define THEMIIFY_ROOT "fs:/vol/external01/themiify"
 #define THEMIIFY_INSTALLED_THEMES "fs:/vol/external01/themiify/installed"
+#define THEMIIFY_THUMBNAILS "fs:/vol/external01/themiify/cache/thumbnails"
 #define THEMES_ROOT "fs:/vol/external01/wiiu/themes"
 
 #define WII_U_MENU_JPN_TID (0x0005001010040000)

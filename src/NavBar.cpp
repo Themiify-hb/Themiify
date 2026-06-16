@@ -9,7 +9,10 @@
 
 #include "NavBar.h"
 #include "screens/ManageThemesScreen.h"
+#include "screens/HomeScreen.h"
 #include "utils.h"
+
+#include <sysapp/launch.h>
 
 #include <SDL2/SDL_image.h>
 
@@ -27,14 +30,14 @@ namespace NavBar {
     SDL_Texture *manage_themes_button_normal_tex;
     SDL_Texture *manage_themes_button_active_tex;
     
-    SDL_Texture *misc_button_normal_tex;
-    SDL_Texture *misc_button_active_tex;
+    SDL_Texture *settings_button_normal_tex;
+    SDL_Texture *settings_button_active_tex;
     
     SDL_Texture *themezer_button_normal_tex;
     SDL_Texture *themezer_button_active_tex;
     
-    SDL_Texture *download_button_normal_tex;
-    SDL_Texture *download_button_active_tex;
+    SDL_Texture *exit_button_normal_tex;
+    SDL_Texture *exit_button_active_tex;
     
     Tab current_tab = Tab::home;
     
@@ -47,14 +50,14 @@ namespace NavBar {
         manage_themes_button_normal_tex = IMG_LoadTexture(renderer, "fs:/vol/content/ui/manage-themes-button-normal.png");
         manage_themes_button_active_tex = IMG_LoadTexture(renderer, "fs:/vol/content/ui/manage-themes-button-active.png");
 
-        misc_button_normal_tex = IMG_LoadTexture(renderer, "fs:/vol/content/ui/misc-button-normal.png");
-        misc_button_active_tex = IMG_LoadTexture(renderer, "fs:/vol/content/ui/misc-button-active.png");
+        settings_button_normal_tex = IMG_LoadTexture(renderer, "fs:/vol/content/ui/settings-button-normal.png");
+        settings_button_active_tex = IMG_LoadTexture(renderer, "fs:/vol/content/ui/settings-button-active.png");
 
         themezer_button_normal_tex = IMG_LoadTexture(renderer, "fs:/vol/content/ui/themezer-button-normal.png");
         themezer_button_active_tex = IMG_LoadTexture(renderer, "fs:/vol/content/ui/themezer-button-active.png");
 
-        download_button_normal_tex = IMG_LoadTexture(renderer, "fs:/vol/content/ui/download-button-normal.png");
-        download_button_active_tex = IMG_LoadTexture(renderer, "fs:/vol/content/ui/download-button-active.png");
+        exit_button_normal_tex = IMG_LoadTexture(renderer, "fs:/vol/content/ui/exit-button-normal.png");
+        exit_button_active_tex = IMG_LoadTexture(renderer, "fs:/vol/content/ui/exit-button-active.png");
     }
 
     void finalize() {
@@ -66,20 +69,20 @@ namespace NavBar {
         SDL_DestroyTexture(manage_themes_button_normal_tex);
         SDL_DestroyTexture(manage_themes_button_active_tex);
 
-        SDL_DestroyTexture(misc_button_normal_tex);
-        SDL_DestroyTexture(misc_button_active_tex);
+        SDL_DestroyTexture(settings_button_normal_tex);
+        SDL_DestroyTexture(settings_button_active_tex);
 
         SDL_DestroyTexture(themezer_button_normal_tex);
         SDL_DestroyTexture(themezer_button_active_tex);
 
-        SDL_DestroyTexture(download_button_normal_tex);
-        SDL_DestroyTexture(download_button_active_tex);        
+        SDL_DestroyTexture(exit_button_normal_tex);
+        SDL_DestroyTexture(exit_button_active_tex);        
     }
 
     void process_ui() {
         using namespace ImGui::RAII;
 
-        Child nav_bar{"NavBar", {200.0f, 0.0f}, ImGuiChildFlags_NavFlattened};
+        Child nav_bar{"NavBar", {160.0f, 0.0f}, ImGuiChildFlags_NavFlattened};
         if (!nav_bar)
             return;
         
@@ -89,7 +92,7 @@ namespace NavBar {
         StyleVar no_frame_rounding{ImGuiStyleVar_FrameRounding, 0.0f};
         StyleVar no_frame_padding{ImGuiStyleVar_FramePadding, ImVec2{0, 0}};
         
-        ImGui::Image(logo_tex, ImVec2(178, 160));
+        ImGui::Image(logo_tex, ImVec2(152.4f, 138));
 
         if (Child buttons_box{"ButtonsBox", {}, ImGuiChildFlags_NavFlattened}) {
             if (current_tab == Tab::home) {
@@ -99,6 +102,7 @@ namespace NavBar {
                 // Implement the App::ImageButton overload in the App namespace to add the sound effect and rumble when clicked
                 if (ImGui::ImageButton("home_button_normal", home_button_normal_tex, ImVec2(148, 96))) {
                     current_tab = Tab::home;
+                    HomeScreen::force_refresh();
                 }
             }
 
@@ -121,24 +125,20 @@ namespace NavBar {
                 }
             }
             
-            if (current_tab == Tab::misc) {
-                ImGui::ImageButton("misc_button_active", misc_button_active_tex, ImVec2(148, 96));
+            if (current_tab == Tab::settings) {
+                ImGui::ImageButton("settings_button_active", settings_button_active_tex, ImVec2(148, 96));
             }
             else {
-                if (ImGui::ImageButton("misc_button_normal", misc_button_normal_tex, ImVec2(148, 96))) {
-                    current_tab = Tab::misc;
+                if (ImGui::ImageButton("settings_button_normal", settings_button_normal_tex, ImVec2(148, 96))) {
+                    current_tab = Tab::settings;
                 }
             }
+
+            ImGui::Separator();
             
-            
-            if (current_tab == Tab::download) {
-                ImGui::ImageButton("download_button_active", download_button_active_tex, ImVec2(148, 96));
-            }
-            else {
-                if (ImGui::ImageButton("download_button_normal", download_button_normal_tex, ImVec2(148, 96))) {
-                    current_tab = Tab::download;
-                }
-            }            
+            if (ImGui::ImageButton("exit_button_normal", exit_button_normal_tex, ImVec2(148, 96))) {
+                SYSLaunchMenu();
+            }           
         }
     }
 

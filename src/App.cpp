@@ -128,6 +128,9 @@ namespace App {
 
         Mix_OpenAudioDevice(48000, MIX_DEFAULT_FORMAT, 2, 1024, NULL, SDL_AUDIO_ALLOW_ANY_CHANGE);
 
+        Mix_Music *bgm = Mix_LoadMUS("fs:/vol/content/sound/bgm.mp3");
+        Mix_PlayMusic(bgm, -1);
+
         SDL_EventState(SDL_SYSWMEVENT, SDL_ENABLE);
 
         window = SDL_CreateWindow("Themiify", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1280, 720, SDL_WINDOW_SHOWN);

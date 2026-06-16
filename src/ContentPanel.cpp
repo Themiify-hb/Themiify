@@ -11,22 +11,22 @@
 
 #include "screens/HomeScreen.h"
 #include "screens/ManageThemesScreen.h"
+#include "screens/SettingsScreen.h"
 #include "screens/ThemezerScreen.h"
-#include "screens/DownloadScreen.h"
 
 namespace ContentPanel {
     void initialize(SDL_Renderer *renderer) {
         HomeScreen::initialize(renderer);
         ManageThemesScreen::initialize(renderer);
+        SettingsScreen::initialize(renderer);
         ThemezerScreen::initialize(renderer);
-        DownloadScreen::initialize(renderer);
     }
 
     void finalize() {
         HomeScreen::finalize();
         ManageThemesScreen::finalize();
+        SettingsScreen::finalize();
         ThemezerScreen::finalize();
-        DownloadScreen::finalize();
     }
 
     void process_ui(NavBar::Tab tab) {
@@ -39,15 +39,15 @@ namespace ContentPanel {
                 ManageThemesScreen::process_ui();
                 break;
 
-            case NavBar::Tab::misc:
-                break;
+            case NavBar::Tab::settings:
+                SettingsScreen::process_ui();    
+            break;
 
             case NavBar::Tab::themezer:
                 ThemezerScreen::process_ui();
                 break;
-
-            case NavBar::Tab::download:
-                DownloadScreen::process_ui();
+            
+            default:
                 break;
         }
     }
