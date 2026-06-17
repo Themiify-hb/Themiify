@@ -21,7 +21,7 @@ to dump!
 
 #
 
-For further information on usage and troubleshooting of Themiify, please consult the [Theme Café Docs](https://themecafe.github.io/Docs/).
+For further information on usage and troubleshooting of Themiify, please consult the [Theme Café Docs](https://themecafe.github.io/Docs/install/themiify/).
 
 ## Building
 
