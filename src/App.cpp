@@ -162,6 +162,7 @@ namespace App {
         }
 
         Camera::initialize(renderer);
+        Camera::open();
 
         DownloadManager::initialize(user_agent);
         ImageLoader::initialize(renderer);
@@ -178,6 +179,7 @@ namespace App {
         ImageLoader::finalize();
         DownloadManager::finalize();
         
+        Camera::close();
         Camera::shutdown();
 
         SDL_DestroyRenderer(renderer);

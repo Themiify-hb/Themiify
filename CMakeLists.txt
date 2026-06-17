@@ -72,6 +72,7 @@ target_link_libraries(themiify PRIVATE
     PkgConfig::SDL2_image
     PkgConfig::SDL2_mixer
     wiiu-stdout
+    quirc
 )
 
 # run program using wiiload

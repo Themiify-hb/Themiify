@@ -52,6 +52,8 @@ namespace ThemezerScreen {
 
     SDL_Texture* themezer_logo = nullptr;
 
+    Mix_Chunk *qr_sfx;
+
     std::string sort_to_label(ItemSort arg) {
         switch (arg) {
             case ItemSort::CREATED:   return "Created";
@@ -130,6 +132,7 @@ namespace ThemezerScreen {
         cout << "Hello from ThemezerScreen init!" << endl;
 
         themezer_logo = IMG_LoadTexture(renderer, "fs:/vol/content/ui/themezer-logo.png");
+        qr_sfx = Mix_LoadWAV("fs:/vol/content/sound/qr-scan.wav");
 
         fetch_page(1);
     }
@@ -229,7 +232,7 @@ namespace ThemezerScreen {
 
                 if (ImGui::Button(ICON_FA_QRCODE)) {
                     cout << "Hello?" << endl;
-                    QRCodePopup::show();
+                    QRCodePopup::show(qr_sfx);
                 }
 
                 ImGui::SameLine();
@@ -332,6 +335,12 @@ namespace ThemezerScreen {
                     }
                     else if (exact_theme) {
                         show(*exact_theme);
+                        ImGui::Spacing();
+                        if (ImGui::Button("Clear Search")) {
+                            exact_id_mode = false;
+                            query = "";
+                            fetch_page(1);
+                        }
                     }
                     else {
                         ImGui::Text("No theme found for this Themezer ID.");
