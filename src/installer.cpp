@@ -14,7 +14,7 @@
 #include <mocha/mocha.h>
 
 #include <sysapp/title.h>
-#include <coreinit/foreground.h>
+#include <coreinit/systeminfo.h>
 
 #include "installer.h"
 #include "utils.h"

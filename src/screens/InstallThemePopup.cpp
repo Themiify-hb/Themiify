@@ -161,11 +161,11 @@ namespace InstallThemePopup {
                     ImGui::Text("Installation unsuccessful!");
                 }
 
-                ImGui::Text("It is possible the files on your NAND have been modified. Please note that Themiify requires stock files\n" \
-                            "to be present on your NAND for theme installation to work.");
+                ImGui::Text("It is possible the files on your NAND have been modified.\nPlease note that Themiify requires stock files " \
+                            "to be present\non your NAND for theme installation to work.");
 
                 ImGui::Spacing();
-                
+
                 ImVec2 button_size{180.0f, 60.0f};
 
                 float start_x =
@@ -173,15 +173,15 @@ namespace InstallThemePopup {
 
                 if (start_x > 0.0f)
                     ImGui::SetCursorPosX(ImGui::GetCursorPosX() + start_x);
-                
+
                 if (ImGui::Button("Close", button_size)) {
                     ImGui::CloseCurrentPopup();
                     state = State::hidden;
-                }
+                }    
 
                 ImGui::Spacing();
                 
-                break;
+                break;    
             }
             case State::success: {
                 {

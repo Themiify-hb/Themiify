@@ -18,6 +18,7 @@ add_executable(themiify
     src/ThemezerAPI.cpp
     src/ImageLoader.cpp
     src/DownloadManager.cpp
+    src/Camera.cpp
     src/screens/HomeScreen.cpp
     src/screens/ManageThemesScreen.cpp
     src/screens/ThemezerScreen.cpp
@@ -28,6 +29,7 @@ add_executable(themiify
     src/screens/InstallThemePopup.cpp
     src/screens/DeleteThemePopup.cpp
     src/screens/SettingsPopup.cpp
+    src/screens/QRCodePopup.cpp
 )
 wut_create_rpx(themiify)
 wut_create_wuhb(themiify

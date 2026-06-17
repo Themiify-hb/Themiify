@@ -16,6 +16,7 @@
 #include "ThemeDetailsPopup.h"
 #include "DownloadThemePopup.h"
 #include "InstallThemePopup.h"
+#include "QRCodePopup.h"
 #include "../utils.h"
 #include "../ImageLoader.h"
 #include "../ThemezerAPI.h"
@@ -226,7 +227,10 @@ namespace ThemezerScreen {
 
                 ImGui::SameLine();
 
-                ImGui::Button(ICON_FA_QRCODE);
+                if (ImGui::Button(ICON_FA_QRCODE)) {
+                    cout << "Hello?" << endl;
+                    QRCodePopup::show();
+                }
 
                 ImGui::SameLine();
 
@@ -350,5 +354,6 @@ namespace ThemezerScreen {
         ThemeDetailsPopup::process_ui();
         DownloadThemePopup::process_ui();
         InstallThemePopup::process_ui();
+        QRCodePopup::process_ui();
     }
 }

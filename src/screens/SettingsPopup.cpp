@@ -1,58 +1,53 @@
 #include "SettingsPopup.h"
 #include "../utils.h"
 
+#include <coreinit/systeminfo.h>
 #include <sysapp/title.h>
+#include <sysapp/launch.h>
 
 #include <string>
 #include <iostream>
 #include <fstream>
+#include <thread>
+#include <atomic>
+#include <mutex>
 
 #include <imgui.h>
 #include <imgui_raii.h>
 
 #include <zlib.h>
 
-/*
-946CD8A2 Common/Package/Men2.pack
-B9A4343A Common/Package/Men.pack
-C9C16521 Common/Sound/Men/cafe_barista_men.bfsar
-
-9C91A249 UsEnglish/Message/AllMessage.szs
-F80483EE UsFrench/Message/AllMessage.szs
-82F3CB76 UsPortuguese/Message/AllMessage.szs
-AFA41B10 UsSpanish/Message/AllMessage.szs
-
-A3662453 EuDutch/Message/AllMessage.szs
-15DB5A6D EuEnglish/Message/AllMessage.szs
-2690B327 EuFrench/Message/AllMessage.szs
-F6FD1ADA EuGerman/Message/AllMessage.szs
-DAF77D8C EuItalian/Message/AllMessage.szs
-E0DC3860 EuPortuguese/Message/AllMessage.szs
-0BDED99E EuRussian/Message/AllMessage.szs
-89C4AA89 EuSpanish/Message/AllMessage.szs
-
-EEB51547 JpJapanese/Message/AllMessage.szs
-*/
-
 using std::cout;
 using std::endl;
 using namespace std::literals;
 
 namespace SettingsPopup {
-    enum State {
+    enum class State {
         hidden,
+        stylmiiu_error,
         integrity_confirmation,
         checking_integrity,
         integrity_checked,
         dump_confirmation,
         dumping,
         dump_completed,
+        dump_error,
         cache_confirmation,
         clearing_cache,
         cache_cleared,
+        cache_error,
+    };
+
+    enum class Region {
+        USA,
+        EUR,
+        JPN,
+        UNK,
     };
 
     State state;
+
+    Region region;
 
     bool popup_queued;
     const std::string popup_id = "SettingsPopup"s;
@@ -61,6 +56,11 @@ namespace SettingsPopup {
     bool delete_thumbnails = false;
 
     std::string menu_content_path;
+
+    std::jthread worker_thread;
+    std::atomic_bool worker_done = false;
+    std::atomic_bool worker_success = false;
+    std::mutex worker_mutex;    
 
     std::array<std::string, 13> all_message_szs_locations = {
         "UsEnglish/Message/AllMessage.szs",
@@ -106,11 +106,58 @@ namespace SettingsPopup {
     }};    
 
     std::vector<std::string> full_all_message_paths;
+    std::vector<std::string> cache_all_message_paths;
 
     std::vector<std::string> modified_files;
 
+    void start_worker(auto&& func)
+    {
+        OSEnableHomeButtonMenu(FALSE);
+
+        worker_done = false;
+        worker_success = false;
+
+        worker_thread = std::jthread{
+            [func = std::forward<decltype(func)>(func)]() mutable {
+                bool success = false;
+
+                try {
+                    success = func();
+                }
+                catch (const std::exception& e) {
+                    cout << "Settings worker error: " << e.what() << endl;
+                    success = false;
+                }
+                catch (...) {
+                    cout << "Settings worker unknown error" << endl;
+                    success = false;
+                }
+
+                worker_success = success;
+                worker_done = true;
+
+                OSEnableHomeButtonMenu(TRUE);
+            }
+        };
+    }    
+
     std::string GetMenuContentPath() {
         uint64_t menuTitleID = _SYSGetSystemApplicationTitleId(SYSTEM_APP_ID_WII_U_MENU);
+
+        switch (menuTitleID) {
+            case WII_U_MENU_USA_TID:
+                region = Region::USA;
+                break;
+            case WII_U_MENU_EUR_TID:
+                region = Region::EUR;
+                break;
+            case WII_U_MENU_JPN_TID:
+                region = Region::JPN;
+                break;
+            default:
+                region = Region::UNK;
+                break;
+        }
 
         uint32_t menuIDParentDir = (uint32_t)(menuTitleID >> 32);
         uint32_t menuIDChildDir = (uint32_t)menuTitleID;
@@ -184,17 +231,69 @@ namespace SettingsPopup {
         menu_content_path = GetMenuContentPath();
 
         full_all_message_paths.clear();
+        cache_all_message_paths.clear();
         modified_files.clear();
 
         for (const auto& path : all_message_szs_locations) {
-            full_all_message_paths.push_back(menu_content_path + path);
+            switch (region) {
+                case Region::USA:
+                    if (std::string_view(path).starts_with("Us")) {
+                        full_all_message_paths.push_back(menu_content_path + path);
+                        cache_all_message_paths.push_back(std::string(THEMIIFY_ROOT) + "/cache/" + path);
+                    }
+                    
+                    break;
+                case Region::EUR:
+                    if (std::string_view(path).starts_with("Eu")) {
+                        full_all_message_paths.push_back(menu_content_path + path);
+                        cache_all_message_paths.push_back(std::string(THEMIIFY_ROOT) + "/cache/" + path);
+                    }
+
+                    break;
+                case Region::JPN:
+                    if (std::string_view(path).starts_with("Jp")) {
+                        full_all_message_paths.push_back(menu_content_path + path);
+                        cache_all_message_paths.push_back(std::string(THEMIIFY_ROOT) + "/cache/" + path);
+                    }
+                    
+                    break;
+                default:
+                    break;
+            }
         }
 
         popup_queued = true;
 
         switch (openState) {
+            case OpenState::stylemiiu:
+                state = State::stylmiiu_error;
+                break;
             case OpenState::integrity:
                 state = State::integrity_confirmation;
+                break;
+            case OpenState::force_integrity:
+                modified_files.clear();
+
+                start_worker([] {
+                    for (const auto& entry : integrity_files) {
+                        std::filesystem::path full_path =
+                            menu_content_path + entry.relative_path;
+
+                        if (!std::filesystem::exists(full_path))
+                            continue;
+
+                        uint32_t crc = CalculateCRC32(full_path);
+
+                        if (crc != entry.expected_crc) {
+                            std::scoped_lock lock{worker_mutex};
+                            modified_files.push_back(entry.relative_path);
+                        }
+                    }
+
+                    return true;
+                });                      
+            
+                state = State::checking_integrity;
                 break;
             case OpenState::dump:
                 state = State::dump_confirmation;
@@ -232,6 +331,35 @@ namespace SettingsPopup {
         }
 
         switch (state) {
+            case State::stylmiiu_error: {
+                {
+                    Font title_font{nullptr, 35};
+                    ImGui::AlignTextToFramePadding();
+                    ImGui::Text("StyleMiiU Not Found!");
+                } 
+
+                ImGui::Text("The StyleMiiU aroma plugin could not be found!\n\nFor your installed themes to work in the Wii U Menu " \
+                            "you will need to install\nthis plugin from either the Homebrew App Store or at:\n\n" \
+                            "github.com/Themiify-hb/StyleMiiU-Plugin/releases/latest");
+
+                ImGui::Spacing();
+
+                ImVec2 button_size{250.0f, 60.0f};
+
+                float start_x =
+                    (ImGui::GetContentRegionAvail().x - button_size.x) * 0.5f;
+
+                if (start_x > 0.0f)
+                    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + start_x);
+
+                if (ImGui::Button("Close Themiify", button_size)) {
+                    SYSLaunchMenu();
+                }    
+
+                ImGui::Spacing();
+                
+                break;                                              
+            }
             case State::integrity_confirmation: {
                 {
                     Font title_font{nullptr, 35};
@@ -257,6 +385,27 @@ namespace SettingsPopup {
                     ImGui::SetCursorPosX(ImGui::GetCursorPosX() + start_x);
 
                 if (ImGui::Button("Check Integrity", button_size)) {
+                    modified_files.clear();
+
+                    start_worker([] {
+                        for (const auto& entry : integrity_files) {
+                            std::filesystem::path full_path =
+                                menu_content_path + entry.relative_path;
+
+                            if (!std::filesystem::exists(full_path))
+                                continue;
+
+                            uint32_t crc = CalculateCRC32(full_path);
+
+                            if (crc != entry.expected_crc) {
+                                std::scoped_lock lock{worker_mutex};
+                                modified_files.push_back(entry.relative_path);
+                            }
+                        }
+
+                        return true;
+                    });                    
+                    
                     state = State::checking_integrity;
                 }
 
@@ -272,35 +421,22 @@ namespace SettingsPopup {
                 break;
             }
             case State::checking_integrity: {
-                for (const auto& entry : integrity_files) {
-                    std::filesystem::path full_path =
-                        menu_content_path + entry.relative_path;
-
-                    if (!std::filesystem::exists(full_path)) {
-                        std::cout << "Missing: " << full_path << '\n';
-                        continue;
-                    }
-
-                    uint32_t crc = CalculateCRC32(full_path);
-
-                    if (crc != entry.expected_crc) {
-                        std::cout << "Modified: "
-                                << full_path
-                                << " Expected: 0x" << std::hex << entry.expected_crc
-                                << " Got: 0x" << crc
-                                << std::dec << '\n';
-                        
-                        modified_files.push_back(entry.relative_path);
-                    }
-                }
-
                 {
                     Font title_font{nullptr, 35};
                     ImGui::AlignTextToFramePadding();
                     ImGui::Text("Checking...");
-                }                  
+                }        
                 
-                state = State::integrity_checked;
+                ImGui::Text("Please wait. Do not turn off your Wii U.");
+                
+                if (worker_done) {
+                    worker_thread = {};
+                    state = worker_success
+                        ? State::integrity_checked
+                        : State::cache_error;
+                }
+
+                break;
             }
             case State::integrity_checked: {
                 {
@@ -373,6 +509,45 @@ namespace SettingsPopup {
                     ImGui::SetCursorPosX(ImGui::GetCursorPosX() + start_x);
 
                 if (ImGui::Button("Dump Files", button_size)) {
+                    start_worker([] {
+                        bool dump_success = true;
+
+                        auto dump_one = [](const std::string& src, const std::string& dst) {
+                            std::ifstream file(src, std::ios::binary | std::ios::ate);
+                            CreateParentDirectories(dst);
+                            CreateCacheFile(file, dst);
+
+                            return std::filesystem::exists(dst)
+                                && std::filesystem::file_size(dst) > 0;
+                        };
+
+                        dump_success &= dump_one(
+                            menu_content_path + MEN_PATH,
+                            std::string(THEMIIFY_ROOT) + "/cache/" + MEN_PATH
+                        );
+
+                        dump_success &= dump_one(
+                            menu_content_path + MEN2_PATH,
+                            std::string(THEMIIFY_ROOT) + "/cache/" + MEN2_PATH
+                        );
+
+                        dump_success &= dump_one(
+                            menu_content_path + CAFE_BARISTA_MEN_PATH,
+                            std::string(THEMIIFY_ROOT) + "/cache/" + CAFE_BARISTA_MEN_PATH
+                        );
+
+                        if (dump_allmessage) {
+                            for (size_t i = 0; i < full_all_message_paths.size(); ++i) {
+                                dump_success &= dump_one(
+                                    full_all_message_paths.at(i),
+                                    cache_all_message_paths.at(i)
+                                );
+                            }
+                        }
+
+                        return dump_success;
+                    });
+
                     state = State::dumping;
                 }
 
@@ -388,38 +563,20 @@ namespace SettingsPopup {
                 break;
             }
             case State::dumping: {
-                std::ifstream men_file(menu_content_path + MEN_PATH);
-                CreateParentDirectories(std::string(THEMIIFY_ROOT) + "/cache/" + std::string(MEN_PATH));
-                CreateCacheFile(men_file, std::string(THEMIIFY_ROOT) + "/cache/" + std::string(MEN_PATH));
-                men_file.close();
-                
-                std::ifstream men2_file(menu_content_path + MEN2_PATH);
-                CreateParentDirectories(std::string(THEMIIFY_ROOT) + "/cache/" + std::string(MEN2_PATH));
-                CreateCacheFile(men2_file, std::string(THEMIIFY_ROOT) + "/cache/" + std::string(MEN2_PATH));
-                men2_file.close();
-                
-                std::ifstream barista_file(menu_content_path + CAFE_BARISTA_MEN_PATH);
-                CreateParentDirectories(std::string(THEMIIFY_ROOT) + "/cache/" + std::string(CAFE_BARISTA_MEN_PATH));
-                CreateCacheFile(barista_file, std::string(THEMIIFY_ROOT) + "/cache/" + std::string(CAFE_BARISTA_MEN_PATH));
-                barista_file.close();   
+                Font title_font{nullptr, 35};
+                ImGui::AlignTextToFramePadding();
+                ImGui::Text("Dumping...");
 
-                if (dump_allmessage) {
-                    for (size_t i = 0; i < full_all_message_paths.size(); ++i) {
-                        std::ifstream source_file(full_all_message_paths.at(i));
-                        CreateParentDirectories(full_all_message_paths.at(i));
-                        std::string output_path = std::string(THEMIIFY_ROOT) + "/cache/" + all_message_szs_locations.at(i);
-                        CreateCacheFile(source_file, output_path);
-                        source_file.close();
-                    }
+                ImGui::Text("Please wait. Do not turn off your Wii U.");
+
+                if (worker_done) {
+                    worker_thread = {};
+                    state = worker_success
+                        ? State::dump_completed
+                        : State::dump_error;
                 }
 
-                {
-                    Font title_font{nullptr, 35};
-                    ImGui::AlignTextToFramePadding();
-                    ImGui::Text("Dumping...");
-                }   
-                
-                state = State::dump_completed;
+                break;
             }
             case State::dump_completed: {
                 {
@@ -450,6 +607,34 @@ namespace SettingsPopup {
                 
                 break;    
             }
+            case State::dump_error: {
+                {
+                    Font title_font{nullptr, 35};
+                    ImGui::AlignTextToFramePadding();
+                    ImGui::Text("Dump Error");
+                }   
+                
+                ImGui::Text("One or more files failed to dump correctly.");
+
+                ImGui::Spacing();
+
+                ImVec2 button_size{180.0f, 60.0f};
+
+                float start_x =
+                    (ImGui::GetContentRegionAvail().x - button_size.x) * 0.5f;
+
+                if (start_x > 0.0f)
+                    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + start_x);
+
+                if (ImGui::Button("Close", button_size)) {
+                    ImGui::CloseCurrentPopup();
+                    state = State::hidden;
+                }    
+
+                ImGui::Spacing();                
+                
+                break;
+            }
             case State::cache_confirmation: {
                 {
                     Font title_font{nullptr, 35};
@@ -473,6 +658,30 @@ namespace SettingsPopup {
                     ImGui::SetCursorPosX(ImGui::GetCursorPosX() + start_x);
 
                 if (ImGui::Button("Clear Cache", button_size)) {
+                    start_worker([] {
+                        if (delete_thumbnails)
+                            DeletePath(THEMIIFY_THUMBNAILS);
+
+                        DeletePath(std::string(THEMIIFY_ROOT) + "/cache/Common");
+
+                        for (const auto& path : all_message_szs_locations) {
+                            DeletePath(std::string(THEMIIFY_ROOT) + "/cache/" + path);
+                        }
+
+                        if (delete_thumbnails && std::filesystem::exists(THEMIIFY_THUMBNAILS))
+                            return false;
+
+                        if (std::filesystem::exists(std::string(THEMIIFY_ROOT) + "/cache/Common"))
+                            return false;
+
+                        for (const auto& path : all_message_szs_locations) {
+                            if (std::filesystem::exists(std::string(THEMIIFY_ROOT) + "/cache/" + path))
+                                return false;
+                        }
+
+                        return true;
+                    });
+
                     state = State::clearing_cache;
                 }
 
@@ -487,27 +696,23 @@ namespace SettingsPopup {
                 
                 break;
             }
-            case clearing_cache: {
-                if (delete_thumbnails)
-                    DeletePath(THEMIIFY_THUMBNAILS);
-                
-                DeletePath(std::string(THEMIIFY_ROOT) + "/cache/Common");
-                for (const auto& path : all_message_szs_locations) {
-                    std::string full_path = std::string(THEMIIFY_ROOT) + "/cache/" + path;
-                    DeletePath(full_path);
-                }
+            case State::clearing_cache: {
+                Font title_font{nullptr, 35};
+                ImGui::AlignTextToFramePadding();
+                ImGui::Text("Clearing Cache...");
 
-                {
-                    Font title_font{nullptr, 35};
-                    ImGui::AlignTextToFramePadding();
-                    ImGui::Text("Clearing Cache...");
-                }
+                ImGui::Text("Please wait.");
 
-                state = State::cache_cleared;
+                if (worker_done) {
+                    worker_thread = {};
+                    state = worker_success
+                        ? State::cache_cleared
+                        : State::cache_error;
+                }
 
                 break;
             }
-            case cache_cleared: {
+            case State::cache_cleared: {
                 {
                     Font title_font{nullptr, 35};
                     ImGui::AlignTextToFramePadding();
@@ -534,6 +739,34 @@ namespace SettingsPopup {
                 ImGui::Spacing();
                 
                 break;                
+            }
+            case State::cache_error: {
+                {
+                    Font title_font{nullptr, 35};
+                    ImGui::AlignTextToFramePadding();
+                    ImGui::Text("Error Clearing Cache");
+                }                     
+
+                ImGui::Text("One or more files could not be removed from the cache");
+
+                ImGui::Spacing();
+
+                ImVec2 button_size{180.0f, 60.0f};
+
+                float start_x =
+                    (ImGui::GetContentRegionAvail().x - button_size.x) * 0.5f;
+
+                if (start_x > 0.0f)
+                    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + start_x);
+
+                if (ImGui::Button("Close", button_size)) {
+                    ImGui::CloseCurrentPopup();
+                    state = State::hidden;
+                }    
+
+                ImGui::Spacing();
+                
+                break;                     
             }
             default:
                 break;

@@ -13,3 +13,6 @@
 [submodule "external/wiiu-stdout"]
 	path = external/wiiu-stdout
 	url = https://github.com/dkosmari/wiiu-stdout.git
+[subomdule "external/quirc"]
+	path = external/quirc
+	url = https://github.com/dlbeer/quirc.git

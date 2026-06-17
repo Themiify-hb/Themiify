@@ -16,9 +16,9 @@
 
 namespace ContentPanel {
     void initialize(SDL_Renderer *renderer) {
+        SettingsScreen::initialize(renderer);
         HomeScreen::initialize(renderer);
         ManageThemesScreen::initialize(renderer);
-        SettingsScreen::initialize(renderer);
         ThemezerScreen::initialize(renderer);
     }
 

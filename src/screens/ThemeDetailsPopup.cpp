@@ -101,16 +101,15 @@ namespace ThemeDetailsPopup {
             state = State::hidden;
             return;
         }
-
         
         switch (state) {
             case State::waiting:
-            ImGui::Text("Fetching theme details...");
-            break;
+                ImGui::Text("Fetching theme details...");
+                break;
             
             case State::error:
-            ImGui::TextWrapped("Error: %s", error.data());
-            break;
+                ImGui::TextWrapped("Error: %s", error.data());
+                break;
             
             case State::ready_themezer: {
                 ImGui::Text("Theme details");

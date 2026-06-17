@@ -13,12 +13,15 @@
 #include "ThemezerAPI.h"
 #include "ImageLoader.h"
 #include "DownloadManager.h"
+#include "Camera.h"
 #include "utils.h"
 
 #include <iostream>
 #include <vector>
 
 #include <coreinit/memory.h>
+#include <coreinit/debug.h>
+#include <proc_ui/procui.h>
 
 #include <mocha/mocha.h>
 
@@ -48,6 +51,13 @@ namespace App {
     SDL_Renderer *renderer;
 
     std::vector<SDL_GameController *> controllers;
+
+    static uint32_t procCallbackAcquire(void *content) {
+        if (Camera::is_initialized())
+            Camera::open();
+        
+        return 0;
+    }
     
     void initialize_imgui() {
         IMGUI_CHECKVERSION();
@@ -96,10 +106,6 @@ namespace App {
         // WORKAROUND: the freetype backend seems to misalign fonts merged with FontAwesome
         fontConfig.GlyphOffset.y = -style.FontSizeBase * (1.0f / 8.0f);
 #endif
-        
-        // Get Wii U System fonts.
-        // Down the line move this to its own font loading function because we'll
-        // be loading more fonts than just this one.
         void *fontData = nullptr;
         uint32_t fontSize = 0;
         OSGetSharedData(OS_SHAREDDATATYPE_FONT_STANDARD, 0, &fontData, &fontSize);
@@ -107,6 +113,8 @@ namespace App {
         io.Fonts->AddFontFromMemoryTTF(fontData, fontSize, style.FontSizeBase, &fontConfig);
         fontConfig.MergeMode = true;
         io.Fonts->AddFontFromFileTTF("fs:/vol/content/fonts/fontawesome-webfont.ttf", style.FontSizeBase, &fontConfig);
+        io.Fonts->AddFontFromFileTTF("fs:/vol/content/fonts/InterVariable.ttf", style.FontSizeBase, &fontConfig);
+        io.Fonts->AddFontFromFileTTF("fs:/vol/content/fonts/Symbola.ttf", style.FontSizeBase, &fontConfig);
 
         ImGui_ImplSDL2_InitForSDLRenderer(window, renderer);
         ImGui_ImplSDLRenderer2_Init(renderer);
@@ -115,8 +123,14 @@ namespace App {
     void initialize() {
         std::filesystem::create_directories(THEMIIFY_ROOT);
         
-        Mocha_InitLibrary();
-        Mocha_MountFS("storage_mlc", nullptr, "/vol/storage_mlc01");
+        MochaUtilsStatus res; 
+        if ((res = Mocha_InitLibrary()) != MOCHA_RESULT_SUCCESS) {
+            OSFatal("FATAL ERROR:\nCould not initialize Mocha.\n\nPlease make sure you are running on the latest version of Aroma");
+        }
+
+        if ((res = Mocha_MountFS("storage_mlc", nullptr, "/vol/storage_mlc01")) != MOCHA_RESULT_SUCCESS) {
+            OSFatal("FATAL ERROR:\nCould not mount storage_mlc.\n\nPlease make sure you are running on the latest version of Aroma");
+        }
         
         curl_global_init(CURL_GLOBAL_DEFAULT);
   
@@ -127,9 +141,6 @@ namespace App {
         Mix_Init(MIX_INIT_MP3 | MIX_INIT_OGG);
 
         Mix_OpenAudioDevice(48000, MIX_DEFAULT_FORMAT, 2, 1024, NULL, SDL_AUDIO_ALLOW_ANY_CHANGE);
-
-        Mix_Music *bgm = Mix_LoadMUS("fs:/vol/content/sound/bgm.mp3");
-        Mix_PlayMusic(bgm, -1);
 
         SDL_EventState(SDL_SYSWMEVENT, SDL_ENABLE);
 
@@ -150,10 +161,15 @@ namespace App {
             }
         }
 
+        Camera::initialize(renderer);
+
         DownloadManager::initialize(user_agent);
         ImageLoader::initialize(renderer);
         NavBar::initialize(renderer);
         ContentPanel::initialize(renderer);
+
+        // Register proc_ui callback for camera
+        ProcUIRegisterCallback(PROCUI_CALLBACK_ACQUIRE, &procCallbackAcquire, nullptr, 1);
     }
 
     void finalize() {
@@ -162,6 +178,8 @@ namespace App {
         ImageLoader::finalize();
         DownloadManager::finalize();
         
+        Camera::shutdown();
+
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
 

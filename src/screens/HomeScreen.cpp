@@ -1,4 +1,6 @@
 #include "HomeScreen.h"
+#include "SettingsScreen.h"
+#include "SettingsPopup.h"
 #include "../NavBar.h"
 #include "../installer.h"
 #include "../IconsFontAwesome4.h"
@@ -13,6 +15,8 @@
 
 #include <imgui.h>
 #include <imgui_raii.h>
+
+#include <mocha/mocha.h>
 
 using std::cout;
 using std::endl;
@@ -31,6 +35,10 @@ namespace HomeScreen {
     SDL_Texture *current_theme_thumbnail = nullptr;
 
     bool current_theme_refresh = true;
+    
+    bool isFirstBoot = true;
+    bool styleMiiUExists = true;
+    bool queueStyleMiiUPrompt = false;
 
     std::unordered_map<std::string, SDL_Texture*> thumbnail_cache;
     SDL_Texture* placeholder_thumbnail = nullptr;
@@ -92,6 +100,21 @@ namespace HomeScreen {
         current_theme_refresh = true;
     }
 
+    bool check_stylemiiu_exists() {
+        char environmentPathBuffer[0x100];
+
+        MochaUtilsStatus res;
+        if ((res = Mocha_GetEnvironmentPath(environmentPathBuffer, sizeof(environmentPathBuffer))) != MOCHA_RESULT_SUCCESS) {
+            WHBLogPrintf("Failed to get environment path. Are you running on Aroma? Result: %s", Mocha_GetStatusStr(res));
+            return false;
+        }
+
+        if (std::filesystem::exists(std::string(environmentPathBuffer) + "/plugins/stylemiiu.wps"))
+            return true;
+
+        return false;        
+    }
+
     void initialize(SDL_Renderer *renderer) {
         cout << "Hello from HomeScreen init!" << endl;
 
@@ -101,6 +124,14 @@ namespace HomeScreen {
         placeholder_thumbnail = IMG_LoadTexture(renderer, "fs:/vol/content/ui/theme-placeholder-icon.png");
 
         current_theme_refresh = true;
+
+        styleMiiUExists = check_stylemiiu_exists();
+        if (!styleMiiUExists)
+            queueStyleMiiUPrompt = true;
+        
+        cout << "styleMiiUExists: " << styleMiiUExists << endl;
+
+        isFirstBoot = SettingsScreen::check_is_first_boot();
     }
 
     void finalize() {
@@ -112,36 +143,51 @@ namespace HomeScreen {
         }
 
         thumbnail_cache.clear();
-
+        
         if (placeholder_thumbnail) {
             SDL_DestroyTexture(placeholder_thumbnail);
             placeholder_thumbnail = nullptr;
         }
-
+        
         if (themiify_logo) {
             SDL_DestroyTexture(themiify_logo);
             themiify_logo = nullptr;
         }
     }
-
+    
     void process_ui() {
         using namespace ImGui::RAII;
-
-        Child home_content{"HomeContent", {0, 0}, ImGuiChildFlags_NavFlattened};
+        
+        Child home_content{"HomeContent", {0, 0}, ImGuiChildFlags_None};
         if (!home_content)
             return;
-
+            
         if (current_theme_refresh)
             refresh_current_theme();
-
+        
         if (themiify_logo)
             ImGui::Image((ImTextureID)themiify_logo, {520, 124}); 
-
+        
         {
             Font font_guard{nullptr, 55};
-            ImGui::Text("Welcome back!");
+            
+            // Cute lil thing cause why not?
+            isFirstBoot ? ImGui::Text("Welcome!") : ImGui::Text("Welcome back!");
         }
 
+        if (queueStyleMiiUPrompt) {
+            SettingsPopup::show(SettingsPopup::OpenState::stylemiiu);
+            queueStyleMiiUPrompt = false;
+        }
+        
+        if (styleMiiUExists) {
+            // For checking integrity at boot
+            SettingsScreen::run_first_boot_check();
+            SettingsScreen::run_boot_integrity_check();
+        }
+        
+        SettingsPopup::process_ui();
+        
         ImGui::Spacing();
 
         {
@@ -166,7 +212,7 @@ namespace HomeScreen {
                     ImGuiChildFlags_FrameStyle,
                     ImGuiWindowFlags_NoSavedSettings
                 };
-
+                
                 ImGui::Image((ImTextureID)current_theme_thumbnail, {426, 240});
 
                 ImGui::SameLine();
@@ -187,8 +233,8 @@ namespace HomeScreen {
 
 
         if (ImGui::Button("Download Themezer Themes"))
-            NavBar::set_current_tab(NavBar::Tab::themezer);
-
+        NavBar::set_current_tab(NavBar::Tab::themezer);
+        
         ImGui::SameLine();
         ImGui::Dummy(ImVec2(50.0f, 0.0f));
         ImGui::SameLine();
@@ -203,14 +249,14 @@ namespace HomeScreen {
             Font font_guard{nullptr, 45};
             ImGui::Text("Credits:");
         }
-
+        
         ImGui::Spacing();
 
         ImGui::Text(ICON_FA_CODE " Developers:");
         ImGui::Indent();
         ImGui::Text("• Fangal-Airbag\n• AlphaCraft9658\n• Daniel K. O. (dkosmari)");
         ImGui::Unindent();
-
+        
         ImGui::Spacing();
 
         ImGui::Text(ICON_FA_PAINT_BRUSH " UI Design:");
@@ -252,5 +298,6 @@ namespace HomeScreen {
         ImGui::Unindent();
 
         ImGui::Spacing();
+
     }
 }

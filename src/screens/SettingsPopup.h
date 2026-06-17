@@ -2,7 +2,9 @@
 
 namespace SettingsPopup {
     enum OpenState {
+        stylemiiu,
         integrity,
+        force_integrity,
         dump,
         cache,
     };
