@@ -15,5 +15,7 @@
 	url = https://github.com/dkosmari/wiiu-stdout.git
 [submodule "external/quirc"]
 	path = external/quirc
+	url = https://github.com/dlbeer/quirc.git
 [submodule "external/hips"]
 	path = external/hips
+	url = https://github.com/wheremyfoodat/Hips.git
