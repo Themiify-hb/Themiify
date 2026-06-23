@@ -57,6 +57,7 @@ namespace ThemezerScreen {
     bool is_item_count_zero = false;
     bool fetching_theme_by_id = false;
     bool exact_id_mode = false;
+    bool scroll_to_top = false;
 
     std::optional<PageInfo> page_info;
     std::optional<WiiuThemeSmallVec> themes;
@@ -137,6 +138,7 @@ namespace ThemezerScreen {
                 themes = new_themes;
 
                 is_item_count_zero = page_info->itemCount == 0;
+                scroll_to_top = true;
             });
     }
 
@@ -344,6 +346,11 @@ namespace ThemezerScreen {
             StyleColor brown_bg{ImGuiCol_ChildBg, {0.3, 0.3, 0.0, 1.0}};
 #endif
             if (Child theme_list{"ThemeList", {0, 0}, ImGuiChildFlags_AlwaysUseWindowPadding}) {
+
+                if (scroll_to_top) {
+                    scroll_to_top = false;
+                    ImGui::SetScrollY(0);
+                }
 
                 if (exact_id_mode) {
                     if (fetching_theme_by_id) {
