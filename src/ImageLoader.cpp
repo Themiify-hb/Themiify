@@ -1,6 +1,6 @@
 /*
  * Themiify - A theme manager for the Nintendo Wii U
- * Copyright (C) 2026 Fangal-Airbag  
+ * Copyright (C) 2026 Fangal-Airbag
  * Copyright (C) 2026 AlphaCraft9658
  * Copyright (C) 2026  Daniel K. O. <dkosmari>
  *
@@ -314,10 +314,16 @@ namespace ImageLoader {
             else if (location.starts_with("ui/")) {
                 const auto path = content_prefix / location;
 
-                entry.img = IMG_Load(path.string().c_str());
+                entry.img = IMG_Load(path.c_str());
                 if (!entry.img)
                     throw std::runtime_error{IMG_GetError()};
 
+                entry.state = LoadState::loaded;
+            }
+            else if (location.starts_with("fs:/")) {
+                entry.img = IMG_Load(location.c_str());
+                if (!entry.img)
+                    throw std::runtime_error{IMG_GetError()};
                 entry.state = LoadState::loaded;
             }
             else {
@@ -329,7 +335,7 @@ namespace ImageLoader {
                        "ERROR: ImageLoader::process_one_request(): location=\"{}\", exception={}",
                        location,
                        e.what());
-            
+
             entry.state = LoadState::error;
         }
     }
@@ -435,6 +441,7 @@ namespace ImageLoader {
             try {
                 if (msg->data.result != CURLE_OK) {
                     throw std::runtime_error{
+                        "[" + entry->location + "] " +
                         curl_easy_strerror(msg->data.result)
                     };
                 }
@@ -543,4 +550,4 @@ namespace ImageLoader {
                 return "unknown (" + std::to_string(static_cast<int>(st)) + ")";
         }
     }
-}    
+}

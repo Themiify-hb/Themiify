@@ -232,6 +232,7 @@ query($hexId: String!) {
       tags {
         name
       }
+      description
     }
   }
 }

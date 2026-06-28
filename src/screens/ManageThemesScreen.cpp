@@ -8,7 +8,6 @@
  */
 
 #include <iostream>
-#include <unordered_map>
 #include <cctype>
 #include <algorithm>
 
@@ -25,6 +24,7 @@
 #include "../installer.h"
 #include "../utils.h"
 #include "../IconsFontAwesome4.h"
+#include "../ImageLoader.h"
 
 // Define this to help seeing the padding and spacing values for windows.
 // #define DEBUG_BG_COLOR
@@ -51,28 +51,10 @@ namespace ManageThemesScreen {
 
     SDL_Renderer *manage_renderer;
 
-    SDL_Texture *thumbnail;
-    std::unordered_map<std::string, SDL_Texture*> thumbnail_cache;
-    SDL_Texture* placeholder_thumbnail = nullptr;
+    std::filesystem::path thumbnail_path;
 
     std::string search;
     std::string current_theme;
-
-    SDL_Texture *getThumbnail(const std::filesystem::path& path) {
-        std::string key = path.string();
-
-        auto it = thumbnail_cache.find(key);
-        if (it != thumbnail_cache.end())
-            return it->second;
-
-        SDL_Texture* tex = IMG_LoadTexture(manage_renderer, key.c_str());
-
-        if (!tex)
-            return placeholder_thumbnail;
-
-        thumbnail_cache[key] = tex;
-        return tex;
-    }
 
     std::string as_lower_case(std::string s) {
         for (char &c : s)
@@ -148,24 +130,10 @@ namespace ManageThemesScreen {
         create_directories(THEMIIFY_INSTALLED_THEMES);
 
         manage_renderer = renderer;
-
-        placeholder_thumbnail = IMG_LoadTexture(manage_renderer, "fs:/vol/content/ui/theme-placeholder-icon.png");
     }
 
     void finalize() {
         cout << "Hello from InstalledScreen finalize!" << endl;
-
-        for (auto& [path, tex] : thumbnail_cache) {
-            if (tex)
-                SDL_DestroyTexture(tex);
-        }
-
-        thumbnail_cache.clear();
-
-        if (placeholder_thumbnail) {
-            SDL_DestroyTexture(placeholder_thumbnail);
-            placeholder_thumbnail = nullptr;
-        }
     }
 
     void force_refresh() {
@@ -367,8 +335,7 @@ namespace ManageThemesScreen {
                             auto thumbnailPath =
                                 THEMIIFY_THUMBNAILS / (theme_data.themeIDPath + ".webp");
 
-                            SDL_Texture* thumbnail = getThumbnail(thumbnailPath);
-
+                            auto thumbnail = ImageLoader::get(thumbnailPath);
                             ImGui::Image((ImTextureID)thumbnail, {426, 240});
 
                             ImGui::SameLine();
@@ -380,7 +347,9 @@ namespace ManageThemesScreen {
                                 ImGui::TextWrapped("by: %s", theme_data.themeAuthor.c_str());
 
                                 if (ImGui::Button(ICON_FA_INFO_CIRCLE " Details")) {
-                                    ThemeDetailsPopup::show_local(theme_data, thumbnail, is_current_theme);
+                                    ThemeDetailsPopup::open_local(theme_data,
+                                                                  thumbnailPath,
+                                                                  is_current_theme);
                                 }
 
                                 ImGui::SameLine();

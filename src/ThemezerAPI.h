@@ -85,6 +85,7 @@ namespace ThemezerAPI {
 
         std::vector<ThemeTag> tags;
 
+        std::optional<std::string> description;
     }; // struct WiiuThemeFull
 
 

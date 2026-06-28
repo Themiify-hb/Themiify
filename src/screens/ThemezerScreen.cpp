@@ -48,6 +48,7 @@ using std::endl;
 using namespace std::literals;
 
 namespace ThemezerScreen {
+    bool first_fetch = true;
     uint32_t page = 0;
 
     ItemSort sort = ItemSort::CREATED;
@@ -150,7 +151,7 @@ namespace ThemezerScreen {
         themezer_logo = IMG_LoadTexture(renderer, "fs:/vol/content/ui/themezer-logo.png");
         qr_sfx = Mix_LoadWAV("fs:/vol/content/sound/qr-scan.wav");
 
-        fetch_page(1);
+        first_fetch = true;
     }
 
     void finalize() {
@@ -164,15 +165,18 @@ namespace ThemezerScreen {
 
     void show(const WiiuThemeSmall& theme, const ImVec2& inner_size, const ImVec2& padding)
     {
+        // NOTE: to create a complex button, we create a button with no text, then overlap
+        // the contents.
         using namespace ImGui::RAII;
         const auto& style = ImGui::GetStyle();
         const ImVec2 outer_size = inner_size + 2 * padding;
         ImVec2 start_pos = ImGui::GetCursorPos() + padding;
 
         if (ImGui::Button("##btn" + theme.hexId, outer_size)) {
-            ThemeDetailsPopup::show_themezer(theme.hexId, theme);
+            ThemeDetailsPopup::open_themezer(theme.hexId, theme);
         }
 
+        // NOTE: when hovered or activated, change the text color to the background color.
         std::optional<StyleColor> dark_text;
         if (ImGui::IsItemHovered() || ImGui::IsItemActive()) {
             const auto& colors = style.Colors;
@@ -416,5 +420,10 @@ namespace ThemezerScreen {
         DownloadThemePopup::process_ui();
         InstallThemePopup::process_ui();
         QRCodePopup::process_ui();
+
+        if (first_fetch) {
+            fetch_page(1);
+            first_fetch = false;
+        }
     }
 }
