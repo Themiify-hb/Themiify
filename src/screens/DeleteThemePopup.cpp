@@ -7,6 +7,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+#include <cmath>
 #include <string>
 
 #include <imgui.h>
@@ -15,6 +16,7 @@
 
 #include "DeleteThemePopup.h"
 #include "ManageThemesScreen.h"
+#include "../IconsFontAwesome4.h"
 
 using namespace std::literals;
 
@@ -52,8 +54,12 @@ namespace DeleteThemePopup {
         auto center = ImGui::GetMainViewport()->GetCenter();
         ImGui::SetNextWindowPos(center, ImGuiCond_Always, {0.5f, 0.5f});
 
-        Popup popup{popup_id, ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_AlwaysAutoResize |
-                    ImGuiWindowFlags_NoMove};
+        PopupModal popup{popup_id, nullptr,
+                         ImGuiWindowFlags_NoSavedSettings |
+                         ImGuiWindowFlags_AlwaysAutoResize |
+                         ImGuiWindowFlags_NoMove |
+                         ImGuiWindowFlags_NoTitleBar |
+                         ImGuiWindowFlags_NoResize};
 
         if (!popup) {
             state = State::hidden;
@@ -70,19 +76,29 @@ namespace DeleteThemePopup {
 
         ImGui::TextWrapped("Would you like to delete \"%s\"?", installedThemeData.themeName.c_str());
 
-        ImGui::Spacing();
+        // Show two buttons with same size.
+        const ImVec2 available = ImGui::GetContentRegionAvail();
 
-        ImVec2 button_size{180.0f, 60.0f};
+        const std::string delete_label = ICON_FA_TRASH " Delete";
+        const std::string cancel_label = ICON_FA_TIMES " Cancel";
+
+        const ImVec2 delete_size = ImGui::CalcTextSize(delete_label);
+        const ImVec2 cancel_size = ImGui::CalcTextSize(cancel_label);
+
+        const ImVec2 button_size =
+            ImVec2{ std::fmax(delete_size.x, cancel_size.x),
+                    std::fmax(delete_size.y, cancel_size.y) }
+            + 2 * style.FramePadding;
 
         float spacing = style.ItemSpacing.x;
-        float total_width = button_size.x * 2.0f + spacing;
+        float total_width = 2 * button_size.x + spacing;
 
-        float start_x = (ImGui::GetContentRegionAvail().x - total_width) * 0.5f;
+        float start_x = (available.x - total_width) / 2;
 
-        if (start_x > 0.0f)
+        if (start_x > 0)
             ImGui::SetCursorPosX(ImGui::GetCursorPosX() + start_x);
 
-        if (ImGui::Button("Delete", button_size)) {
+        if (ImGui::Button(delete_label, button_size)) {
             Installer::DeleteTheme(installedThemeData.installedThemePath, themeJsonPath);
             ManageThemesScreen::force_refresh();
             ImGui::CloseCurrentPopup();
@@ -92,11 +108,9 @@ namespace DeleteThemePopup {
 
         ImGui::SameLine();
 
-        if (ImGui::Button("Cancel", button_size)) {
+        if (ImGui::Button(cancel_label, button_size)) {
             ImGui::CloseCurrentPopup();
             state = State::hidden;
         }
-
-        ImGui::Spacing();
     }
 }

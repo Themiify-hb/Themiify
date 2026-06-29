@@ -1,6 +1,6 @@
 /*
  * Themiify - A theme manager for the Nintendo Wii U
- * Copyright (C) 2026 Fangal-Airbag  
+ * Copyright (C) 2026 Fangal-Airbag
  * Copyright (C) 2026 AlphaCraft9658
  * Copyright (C) 2026  Daniel K. O. <dkosmari>
  *
@@ -124,6 +124,7 @@ query Themes($order: SortOrder, $paginationArgs: PaginationInput, $query: String
           username
         }
         collagePreview {
+          tinyUrl
           thumbUrl
         }
         downloadCount
@@ -231,6 +232,7 @@ query($hexId: String!) {
       tags {
         name
       }
+      description
     }
   }
 }

@@ -21,6 +21,7 @@
 #include "../utils.h"
 #include "../installer.h"
 #include "../thread_safe.hpp"
+#include "../IconsFontAwesome4.h"
 
 using std::cout;
 using std::cerr;
@@ -85,9 +86,7 @@ namespace InstallThemePopup {
             using namespace ImGui::RAII;
 
             // NOTE: take up all available space except for a row of buttons at the bottom.
-            // ImVec2 size{0, -ImGui::GetFrameHeightWithSpacing()};
-            const auto &style = ImGui::GetStyle();
-            ImVec2 size{0.0f, -(style.ItemSpacing.y + 60.0f)};
+            ImVec2 size{0.0f, -ImGui::GetFrameHeightWithSpacing()};
             if (Child messages_box{"messages_box",
                                    size,
                                    ImGuiChildFlags_None,
@@ -187,9 +186,7 @@ namespace InstallThemePopup {
 
                 ImGui::Checkbox("Set as current theme after installation", &set_current);
 
-                ImGui::Spacing();
-
-                ImVec2 button_size{180.0f, 60.0f};
+                ImVec2 button_size{180, 0};
 
                 float spacing = style.ItemSpacing.x;
                 float total_width = button_size.x * 2.0f + spacing;
@@ -199,19 +196,17 @@ namespace InstallThemePopup {
                 if (start_x > 0.0f)
                     ImGui::SetCursorPosX(ImGui::GetCursorPosX() + start_x);
 
-                if (ImGui::Button("Install", button_size)) {
+                if (ImGui::Button(ICON_FA_COGS " Install", button_size)) {
                     state = State::start_install;
                 }
                 ImGui::SetItemDefaultFocus();
 
                 ImGui::SameLine();
 
-                if (ImGui::Button("Cancel", button_size)) {
+                if (ImGui::Button(ICON_FA_TIMES " Cancel", button_size)) {
                     ImGui::CloseCurrentPopup();
                     state = State::hidden;
                 }
-
-                ImGui::Spacing();
 
                 break;
             }
@@ -236,7 +231,6 @@ namespace InstallThemePopup {
                 ImGui::Dummy({0.0f, 0.0f});
                 {
                     Font title_font{nullptr, 40};
-                    ImGui::AlignTextToFramePadding();
                     ImGui::TextWrapped("Installing %s...", theme_data.themeName.c_str());
                 }
 
@@ -246,7 +240,7 @@ namespace InstallThemePopup {
 
                 show_messages();
 
-                ImVec2 button_size{180.0f, 60.0f};
+                ImVec2 button_size{180, 0};
                 float button_x = (ImGui::GetContentRegionAvail().x - button_size.x) * 0.5f;
                 if (button_x > 0.0f)
                     ImGui::SetCursorPosX(ImGui::GetCursorPosX() + button_x);
@@ -258,13 +252,12 @@ namespace InstallThemePopup {
             case State::error: {
                 {
                     Font title_font{nullptr, 50};
-                    ImGui::AlignTextToFramePadding();
                     ImGui::Text("Installation failed!");
                 }
 
                 show_messages();
 
-                ImVec2 button_size{180.0f, 60.0f};
+                ImVec2 button_size{180, 0};
 
                 float start_x =
                     (ImGui::GetContentRegionAvail().x - button_size.x) * 0.5f;
@@ -282,7 +275,6 @@ namespace InstallThemePopup {
             case State::success: {
                 {
                     Font title_font{nullptr, 50};
-                    ImGui::AlignTextToFramePadding();
                     ImGui::Text("Installation successful!");
                 }
 
@@ -290,9 +282,7 @@ namespace InstallThemePopup {
                                                utheme_path.filename().string()));
                 ImGui::TextWrapped("Would you like to delete it?");
 
-                ImGui::Spacing();
-
-                ImVec2 button_size{180.0f, 60.0f};
+                ImVec2 button_size{180, 0};
 
                 float spacing = style.ItemSpacing.x;
                 float total_width = button_size.x * 2.0f + spacing;

@@ -1,6 +1,6 @@
 /*
  * Themiify - A theme manager for the Nintendo Wii U
- * Copyright (C) 2026 Fangal-Airbag  
+ * Copyright (C) 2026 Fangal-Airbag
  * Copyright (C) 2026 AlphaCraft9658
  * Copyright (C) 2026  Daniel K. O. <dkosmari>
  *
@@ -34,6 +34,7 @@ namespace ThemezerAPI {
             std::string username;
         } creator;
         struct {
+            std::string tinyUrl;  // 320x180
             std::string thumbUrl; // 426x240
         } collagePreview;
         unsigned downloadCount;
@@ -84,6 +85,7 @@ namespace ThemezerAPI {
 
         std::vector<ThemeTag> tags;
 
+        std::optional<std::string> description;
     }; // struct WiiuThemeFull
 
 

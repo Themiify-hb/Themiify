@@ -466,15 +466,17 @@ namespace Installer {
             DeletePath(modpackPath);
         if (!installPath.empty()) {
             DeletePath(installPath);
-            // Dumb hack but I don't wanna change more stuff
             thumbnailPath = THEMIIFY_THUMBNAILS / installPath.stem();
             thumbnailPath.replace_extension(".webp");
             DeletePath(thumbnailPath);
         }
 
-        if (exists(modpackPath) && exists(installPath) && exists(thumbnailPath)) {
+        if ((!modpackPath.empty() && exists(modpackPath))
+            ||
+            (!installPath.empty() && exists(installPath))
+            ||
+            (!thumbnailPath.empty() && exists(thumbnailPath)))
             return false;
-        }
 
         return true;
     }

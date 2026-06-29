@@ -132,14 +132,14 @@ namespace ThemePreviewPopup {
                 const bool is_first_page = page_x <= 0;
                 const bool is_last_page = page_x >= columns - 1;
 
-                ImVec2 arrow_button_size{120.0f, 60.0f};
+                ImVec2 arrow_button_size{120.0f, ImGui::GetFrameHeight()};
                 float middle_y = viewport->Pos.y + (viewport->Size.y - arrow_button_size.y) * 0.5f;
                 float padding = 30.0f;
 
-                ImVec2 button_size{160.0f, 60.0f};
-                ImVec2 text_box_size{220.0f, 60.0f};
+                ImVec2 button_size{160.0f, ImGui::GetFrameHeight()};
+                ImVec2 text_box_size{220.0f, ImGui::GetFrameHeight()};
 
-                float spacing = 20.0f;
+                float spacing = style.ItemSpacing.x;
 
                 float total_width = button_size.x + spacing + text_box_size.x + spacing + button_size.x;
 

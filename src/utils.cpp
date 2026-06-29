@@ -23,6 +23,10 @@ bool CreateParentDirectories(const std::filesystem::path& inputPath) {
 }
 
 void DeletePath(const std::filesystem::path& inputPath) {
+    if (inputPath.empty()) {
+        cerr << "attempting to delete empty path!" << endl;
+        return;
+    }
     if (!exists(inputPath)) {
         cerr << inputPath << " could not be found!" << endl;
         return;

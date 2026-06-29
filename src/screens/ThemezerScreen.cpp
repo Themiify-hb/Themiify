@@ -10,6 +10,7 @@
 #include <cassert>
 #include <iostream>
 #include <optional>
+#include <ranges>
 #include <stdexcept>
 #include <string>
 #include <tuple>
@@ -47,6 +48,7 @@ using std::endl;
 using namespace std::literals;
 
 namespace ThemezerScreen {
+    bool first_fetch = true;
     uint32_t page = 0;
 
     ItemSort sort = ItemSort::CREATED;
@@ -93,6 +95,7 @@ namespace ThemezerScreen {
         small.name = full.name;
         small.slug = full.slug;
         small.creator.username = full.creator.username;
+        small.collagePreview.tinyUrl = full.collagePreview.tinyUrl;
         small.collagePreview.thumbUrl = full.collagePreview.thumbUrl;
         small.downloadCount = full.downloadCount;
         small.downloadUrl = full.downloadUrl;
@@ -124,7 +127,7 @@ namespace ThemezerScreen {
 
         ThemezerAPI::wiiu::themes({
                 .paginationArgs = {
-                    .limit = 20,
+                    .limit = 21,
                     .page = page,
                 },
                 .sort = sort,
@@ -148,7 +151,7 @@ namespace ThemezerScreen {
         themezer_logo = IMG_LoadTexture(renderer, "fs:/vol/content/ui/themezer-logo.png");
         qr_sfx = Mix_LoadWAV("fs:/vol/content/sound/qr-scan.wav");
 
-        fetch_page(1);
+        first_fetch = true;
     }
 
     void finalize() {
@@ -160,103 +163,131 @@ namespace ThemezerScreen {
         cout << "Hello from ThemezerScreen finalize!" << endl;
     }
 
-    void show(const WiiuThemeSmall& theme) {
+    void show(const WiiuThemeSmall& theme, const ImVec2& inner_size, const ImVec2& padding)
+    {
+        // NOTE: to create a complex button, we create a button with no text, then overlap
+        // the contents.
         using namespace ImGui::RAII;
+        const auto& style = ImGui::GetStyle();
+        const ImVec2 outer_size = inner_size + 2 * padding;
+        ImVec2 start_pos = ImGui::GetCursorPos() + padding;
 
-        Child theme_frame{
-            theme.uuid,
-            {0, 320},
-            ImGuiChildFlags_NavFlattened | ImGuiChildFlags_FrameStyle,
-            ImGuiWindowFlags_NoSavedSettings
-        };
+        if (ImGui::Button("##btn" + theme.hexId, outer_size)) {
+            ThemeDetailsPopup::open_themezer(theme.hexId, theme);
+        }
 
-        if (!theme_frame)
-            return;
+        // NOTE: when hovered or activated, change the text color to the window bg color.
+        std::optional<StyleColor> dark_text;
+        if (ImGui::IsItemHovered() || ImGui::IsItemActive()) {
+            const auto& colors = style.Colors;
+            dark_text.emplace(ImGuiCol_Text, colors[ImGuiCol_WindowBg]);
+        }
 
-        auto thumbnail = ImageLoader::get(theme.collagePreview.thumbUrl);
-        ImGui::Image((ImTextureID)thumbnail, {426, 240});
-
-        ImGui::SameLine();
+        ImGui::SetCursorPos(start_pos);
+        Group grp;
 
         {
-            Group right_group;
+            StyleVar no_border{ImGuiStyleVar_ImageBorderSize, 0};
+            auto thumbnail = ImageLoader::get(theme.collagePreview.tinyUrl);
+            ImVec2 img_size = {inner_size.x, inner_size.x * 9.0f / 16.0f};
+            ImGui::Image((ImTextureID)thumbnail, img_size);
+        }
 
-            ImGui::TextWrapped("%s", theme.name.data());
-            ImGui::TextWrapped("by: %s", theme.creator.username.data());
-            ImGui::Text("Downloads: %u", theme.downloadCount);
+        {
+            Font font{nullptr, 24};
+            ImGui::TextAligned(0.0f, inner_size.x, theme.name);
+        }
 
-            if (ImGui::Button(ICON_FA_INFO_CIRCLE " Details")) {
-                ThemeDetailsPopup::show_themezer(theme.hexId, theme);
-            }
-
+        {
+            // Show author aligned to the left, downloads to the right.
+            Font font{nullptr, 18};
+            std::string downloads_label = ICON_FA_DOWNLOAD " "
+                + std::to_string(theme.downloadCount);
+            float downloads_width = ImGui::CalcTextSize(downloads_label).x;
+            float author_width = inner_size.x - downloads_width - style.ItemSpacing.x;
+            ImGui::TextAligned(0.0f, author_width,
+                               "by %s", theme.creator.username.data());
             ImGui::SameLine();
-
-            if (ImGui::Button(ICON_FA_DOWNLOAD " Download")) {
-                DownloadThemePopup::show(theme);
-            }
+            ImGui::SetCursorPosX(start_pos.x + inner_size.x - downloads_width);
+            ImGui::Text(downloads_label);
         }
     }
 
     void process_ui() {
         using namespace ImGui::RAII;
 
-#ifdef DEBUG_BG_COLOR
-        StyleColor green_bg{ImGuiCol_ChildBg, {0.0, 0.5, 0.0, 1.0}};
-#endif
-        Child themezer_content{
-            "ThemezerContent",
-            {0, 0},
-            ImGuiChildFlags_NavFlattened |
-            ImGuiChildFlags_AlwaysUseWindowPadding
-        };
-
-        if (!themezer_content)
-            return;
-
-        // Title
-        if (themezer_logo) {
-            ImGui::Image((ImTextureID)themezer_logo, {300, 86});
-        }
-
-        // Sort and Filter controls
         {
-            Disabled disable_when{ThemezerAPI::is_busy()};
-
-            if (Child filter_order_search_box{
-                    "FilterOrderSearchBox",
-                    {700.0f, 75.0f},
-                    ImGuiChildFlags_NavFlattened
-                }) {
-
-                SDL_WiiUSetSWKBDKeyboardMode(SDL_WIIU_SWKBD_KEYBOARD_MODE_RESTRICTED);
-                SDL_WiiUSetSWKBDHintText("Input the name or ID (starting with 'T') of\na theme to search for it...");
-                SDL_WiiUSetSWKBDOKLabel("Search");
-                SDL_WiiUSetSWKBDHighlightInitialText(SDL_TRUE);
-
-                ImGui::SetNextItemWidth(300.0f);
-                if (ImGui::InputTextWithHint("##network_search"s, "Search..."s, query)) {
-                    cout << "Searching: " << query << endl;
-
-                    exact_id_mode = false;
-                    exact_theme.reset();
-                    fetching_theme_by_id = false;
-
-                    fetch_page(1);
+            // NOTE: use a scope to contain all the temporary style changes, so they don't
+            // leak into the popups at the bottom.
+#ifdef DEBUG_BG_COLOR
+            StyleColor green_bg{ImGuiCol_ChildBg, {0.0, 0.5, 0.0, 1.0}};
+#endif
+            auto &style = ImGui::GetStyle();
+            auto orig_padding = style.WindowPadding;
+            StyleVar small_padding{ImGuiStyleVar_WindowPadding, {0, style.WindowPadding.y}};
+            if (Child themezer_content{"ThemezerContent",
+                                       {0, 0},
+                                       ImGuiChildFlags_NavFlattened |
+                                       ImGuiChildFlags_AlwaysUseWindowPadding}) {
+                // Title
+                if (themezer_logo) {
+                    ImGui::Image((ImTextureID)themezer_logo, {300, 86});
                 }
 
-                ImGui::SameLine();
+                // Sort and Filter controls
+                {
+                    Disabled disable_when{ThemezerAPI::is_busy()};
 
-                if (ImGui::Button(ICON_FA_QRCODE)) {
-                    QRCodePopup::show(qr_sfx);
-                }
+                    if (Child filter_order_search_box{
+                            "FilterOrderSearchBox",
+                            {700.0f, 75.0f},
+                            ImGuiChildFlags_NavFlattened
+                        }) {
 
-                ImGui::SameLine();
+                        SDL_WiiUSetSWKBDKeyboardMode(SDL_WIIU_SWKBD_KEYBOARD_MODE_RESTRICTED);
+                        SDL_WiiUSetSWKBDHintText("Input the name or ID (starting with 'T') of\n"
+                                                 "a theme to search for it...");
+                        SDL_WiiUSetSWKBDOKLabel("Search");
+                        SDL_WiiUSetSWKBDHighlightInitialText(SDL_TRUE);
 
-                ImGui::SetNextItemWidth(220);
-                if (Combo sort_combo{"##sort_combo"s, sort_to_label(sort)}) {
-                    for (auto new_sort : ThemezerAPI::ItemSortList) {
-                        if (ImGui::Selectable(sort_to_label(new_sort), new_sort == sort)) {
-                            sort = new_sort;
+                        ImGui::SetNextItemWidth(280);
+                        if (ImGui::InputTextWithHint("##network_search"s, "Search..."s, query)) {
+                            cout << "Searching: " << query << endl;
+
+                            exact_id_mode = false;
+                            exact_theme.reset();
+                            fetching_theme_by_id = false;
+
+                            fetch_page(1);
+                        }
+
+                        ImGui::SameLine();
+
+                        if (ImGui::Button(ICON_FA_QRCODE)) {
+                            QRCodePopup::show(qr_sfx);
+                        }
+
+                        ImGui::SameLine();
+
+                        ImGui::SetNextItemWidth(220);
+                        if (Combo sort_combo{"##sort_combo"s, sort_to_label(sort)}) {
+                            for (auto new_sort : ThemezerAPI::ItemSortList) {
+                                if (ImGui::Selectable(sort_to_label(new_sort), new_sort == sort)) {
+                                    sort = new_sort;
+
+                                    exact_id_mode = false;
+                                    exact_theme.reset();
+                                    fetching_theme_by_id = false;
+
+                                    fetch_page(1);
+                                }
+                            }
+                        }
+
+                        ImGui::SameLine();
+
+                        if (ImGui::Button(order_to_label(order))) {
+                            order = order == SortOrder::ASC ? SortOrder::DESC : SortOrder::ASC;
 
                             exact_id_mode = false;
                             exact_theme.reset();
@@ -269,119 +300,117 @@ namespace ThemezerScreen {
 
                 ImGui::SameLine();
 
-                if (ImGui::Button(order_to_label(order))) {
-                    order = order == SortOrder::ASC ? SortOrder::DESC : SortOrder::ASC;
+                // Navigation controls
+                {
+                    Disabled disabled_when{ThemezerAPI::is_busy() || exact_id_mode};
 
-                    exact_id_mode = false;
-                    exact_theme.reset();
-                    fetching_theme_by_id = false;
+                    auto& new_page_info = page_info;
 
-                    fetch_page(1);
+                    {
+                        bool first_page = true;
+                        if (new_page_info)
+                            first_page = new_page_info->page == 1;
+
+                        Disabled disable_when{first_page};
+
+                        if (ImGui::Button(ICON_FA_CHEVRON_LEFT))
+                            fetch_page(page - 1);
+                    }
+
+                    ImGui::SameLine();
+
+                    if (exact_id_mode) {
+                        ImGui::Text("ID Result");
+                    }
+                    else if (new_page_info) {
+                        ImGui::Text("Page %u/%u", new_page_info->page, new_page_info->pageCount);
+                    }
+
+                    ImGui::SameLine();
+
+                    {
+                        bool last_page = true;
+                        if (new_page_info)
+                            last_page = new_page_info->page == new_page_info->pageCount;
+
+                        Disabled disable_when{last_page};
+
+                        if (ImGui::Button(ICON_FA_CHEVRON_RIGHT))
+                            fetch_page(page + 1);
+                    }
                 }
-            }
-        }
 
-        ImGui::SameLine();
+                // Trigger exact ID lookup after normal search returns 0 results
+                if (!ThemezerAPI::is_busy() &&
+                    is_item_count_zero &&
+                    query.starts_with('T') &&
+                    !fetching_theme_by_id &&
+                    !exact_id_mode) {
 
-        // Navigation controls
-        {
-            Disabled disabled_when{ThemezerAPI::is_busy() || exact_id_mode};
+                    std::string hex_id = query.substr(1);
 
-            auto& new_page_info = page_info;
+                    cout << "Searching exact Themezer ID: " << hex_id << endl;
 
-            {
-                bool first_page = true;
-                if (new_page_info)
-                    first_page = new_page_info->page == 1;
+                    fetch_theme_by_id(hex_id);
+                }
 
-                Disabled disable_when{first_page};
-
-                if (ImGui::Button(ICON_FA_CHEVRON_LEFT))
-                    fetch_page(page - 1);
-            }
-
-            ImGui::SameLine();
-
-            if (exact_id_mode) {
-                ImGui::Text("ID Result");
-            }
-            else if (new_page_info) {
-                ImGui::Text("Page %u/%u", new_page_info->page, new_page_info->pageCount);
-            }
-
-            ImGui::SameLine();
-
-            {
-                bool last_page = true;
-                if (new_page_info)
-                    last_page = new_page_info->page == new_page_info->pageCount;
-
-                Disabled disable_when{last_page};
-
-                if (ImGui::Button(ICON_FA_CHEVRON_RIGHT))
-                    fetch_page(page + 1);
-            }
-        }
-
-        // Trigger exact ID lookup after normal search returns 0 results
-        if (!ThemezerAPI::is_busy() &&
-            is_item_count_zero &&
-            query.starts_with('T') &&
-            !fetching_theme_by_id &&
-            !exact_id_mode) {
-
-            std::string hex_id = query.substr(1);
-
-            cout << "Searching exact Themezer ID: " << hex_id << endl;
-
-            fetch_theme_by_id(hex_id);
-        }
-
-        // Themes List
-        {
-            Disabled disable_when{ThemezerAPI::is_busy()};
+                // Themes List
+                {
+                    Disabled disable_when{ThemezerAPI::is_busy()};
 
 #ifdef DEBUG_BG_COLOR
-            StyleColor brown_bg{ImGuiCol_ChildBg, {0.3, 0.3, 0.0, 1.0}};
+                    StyleColor brown_bg{ImGuiCol_ChildBg, {0.3, 0.3, 0.0, 1.0}};
 #endif
-            if (Child theme_list{"ThemeList", {0, 0}, ImGuiChildFlags_AlwaysUseWindowPadding}) {
+                    if (Child theme_list{"ThemeList", {0, 0}, ImGuiChildFlags_AlwaysUseWindowPadding}) {
 
-                if (scroll_to_top) {
-                    scroll_to_top = false;
-                    ImGui::SetScrollY(0);
-                }
-
-                if (exact_id_mode) {
-                    if (fetching_theme_by_id) {
-                        ImGui::Text("Searching by exact Themezer ID...");
-                        if (ImGui::Button("Cancel Search")) {
-                            exact_id_mode = false;
-                            query = "";
-                            fetch_page(1);
+                        if (scroll_to_top) {
+                            scroll_to_top = false;
+                            ImGui::SetScrollY(0);
                         }
-                    }
-                    else if (exact_theme) {
-                        show(*exact_theme);
-                        ImGui::Spacing();
-                        if (ImGui::Button("Clear Search")) {
-                            exact_id_mode = false;
-                            query = "";
-                            fetch_page(1);
-                        }
-                    }
-                    else {
-                        ImGui::Text("No theme found for this Themezer ID.");
-                    }
-                }
-                else {
-                    auto& new_themes = themes;
 
-                    if (!new_themes) {
-                        ImGui::Text("Waiting for Themezer to respond...");
-                    }
-                    else {
-                        for (auto& theme : *new_themes)
-                            show(theme);
+                        const ImVec2 inner_size = {320, 260};
+                        const ImVec2 padding = {12, 12};
+
+                        if (exact_id_mode) {
+                            if (fetching_theme_by_id) {
+                                ImGui::Text("Searching by exact Themezer ID...");
+                                if (ImGui::Button("Cancel Search")) {
+                                    exact_id_mode = false;
+                                    query = "";
+                                    fetch_page(1);
+                                }
+                            }
+                            else if (exact_theme) {
+                                show(*exact_theme, inner_size, padding);
+                                ImGui::Spacing();
+                                if (ImGui::Button("Clear Search")) {
+                                    exact_id_mode = false;
+                                    query = "";
+                                    fetch_page(1);
+                                }
+                            }
+                            else {
+                                ImGui::Text("No theme found for this Themezer ID.");
+                            }
+                        }
+                        else {
+                            auto& new_themes = themes;
+
+                            if (!new_themes) {
+                                ImGui::Text("Waiting for Themezer to respond...");
+                            }
+                            else {
+                                ImVec2 start_pos = ImGui::GetCursorPos();
+                                for (auto [idx, theme] : *new_themes | std::views::enumerate) {
+                                    const ImVec2 outer_size = inner_size + 2 * padding;
+                                    const ImVec2 spacing = {18, 18};
+                                    ImVec2 grid_pos = { float(idx % 3), float(idx / 3) };
+                                    ImVec2 pos = grid_pos * (outer_size + spacing);
+                                    ImGui::SetCursorPos(start_pos + pos);
+                                    show(theme, inner_size, padding);
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -391,5 +420,10 @@ namespace ThemezerScreen {
         DownloadThemePopup::process_ui();
         InstallThemePopup::process_ui();
         QRCodePopup::process_ui();
+
+        if (first_fetch) {
+            fetch_page(1);
+            first_fetch = false;
+        }
     }
 }

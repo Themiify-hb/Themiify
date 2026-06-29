@@ -49,6 +49,9 @@ namespace DownloadManager {
         std::filebuf utheme_file;
         std::filebuf thumbnail_file;
 
+        std::array<char, CURL_ERROR_SIZE> utheme_error_buffer;
+        std::array<char, CURL_ERROR_SIZE> thumbnail_error_buffer;
+
         std::filesystem::path thumbnail_output;
 
         bool utheme_content_started = false;
@@ -75,6 +78,8 @@ namespace DownloadManager {
             if (!thumbnail_file.open(info->thumbnail_output, std::ios::out | std::ios::binary | std::ios::trunc))
                 throw std::runtime_error{"could not open "s + info->thumbnail_output.string()};
 
+            utheme_error_buffer[0] = '\0';
+            thumbnail_error_buffer[0] = '\0';
             setup_easy(utheme_easy, info->utheme_url, this, true);
             setup_easy(thumbnail_easy, info->thumbnail_url, this, false);
         }
@@ -113,6 +118,10 @@ namespace DownloadManager {
             curl_easy_setopt(easy, CURLOPT_BUFFERSIZE, 65536L);
             curl_easy_setopt(easy, CURLOPT_TCP_NODELAY, 0L);
             curl_easy_setopt(easy, CURLOPT_FAILONERROR, 1L);
+            curl_easy_setopt(easy, CURLOPT_ERRORBUFFER,
+                             is_utheme
+                             ? self->utheme_error_buffer.data()
+                             : self->thumbnail_error_buffer.data());
 
             curl_easy_setopt(easy, CURLOPT_WRITEDATA, self);
             curl_easy_setopt(easy,
@@ -263,8 +272,11 @@ namespace DownloadManager {
                         throw std::logic_error{"BUG: transfer not found"};
 
                     if (msg->data.result != CURLE_OK) {
+                        std::string url = msg->easy_handle == completed->utheme_easy
+                            ? completed->info->utheme_url
+                            : completed->info->thumbnail_url;
                         throw std::runtime_error{
-                            curl_easy_strerror(msg->data.result)
+                            curl_easy_strerror(msg->data.result) + " ["s + url + "]"s
                         };
                     }
 

@@ -48,7 +48,7 @@
 // #define DEBUG_BG_COLOR
 
 // Enable to get access to the style editor.
-// #define ENABLE_STYLE_EDITOR
+#define ENABLE_STYLE_EDITOR
 
 using std::cout;
 using std::cerr;
@@ -65,7 +65,7 @@ namespace App {
 
     bool isRunning;
 
-    static uint32_t procCallbackAcquire(void *content) {
+    static uint32_t procCallbackAcquire(void *) {
         if (Camera::is_initialized())
             Camera::open();
 
@@ -165,8 +165,9 @@ namespace App {
 
         auto &style = ImGui::GetStyle();
         style.ScaleAllSizes(3);
-        // style.WindowBorderSize = 0.0f;
-        // style.WindowPadding = {6.0f, 6.0f};
+
+        style.FramePadding = {20, 15};
+        style.ItemSpacing = {24, 18};
 
         style.FrameRounding = 12.0f;
         style.ChildRounding = 0.0f;
@@ -175,8 +176,8 @@ namespace App {
 
         load_imgui_theme();
 
-        auto &colors = style.Colors;
 #ifdef DEBUG_BG_COLOR
+        auto &colors = style.Colors;
         colors[ImGuiCol_WindowBg] = {0.5, 0.0f, 0.0f, 1.0f};
 #endif
 
@@ -233,17 +234,7 @@ namespace App {
         cout << "Hello world from Themiify!" << endl;
 
         initialize_imgui();
-#if 0
-        for (int i = 0; i < SDL_NumJoysticks(); i++) {
-            SDL_GameController *controller = nullptr;
-            if (SDL_IsGameController(i)) {
-                controller = SDL_GameControllerOpen(i);
-                if (controller) {
-                    controllers.push_back(controller);
-                }
-            }
-        }
-#endif
+
         Camera::initialize(renderer);
         Camera::open();
 
@@ -352,24 +343,6 @@ namespace App {
                         }
                         break;
                     }
-                    /*case SDL_SYSWMEVENT: {
-                        auto *msg = e.syswm.msg;
-                        if (!msg)
-                            break;
-
-                        switch (msg->msg.wiiu.event) {
-                            case SDL_WIIU_SYSWM_SWKBD_OK_FINISH_EVENT: {
-                                swkbd_ok_selected = true;
-                                break;
-                            }
-
-                            default:
-                                break;
-                        }
-
-
-                    }*/
-
                     default:
                         break;
                 }

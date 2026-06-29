@@ -7,6 +7,8 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+#include <iostream>
+
 #include "NavBar.h"
 #include "App.h"
 #include "screens/ManageThemesScreen.h"
@@ -18,6 +20,12 @@
 #include <imgui.h>
 #include <imgui_stdlib.h>
 #include <imgui_raii.h>
+
+// Define this to help seeing the padding and spacing values for windows.
+// #define DEBUG_BG_COLOR
+
+using std::cout;
+using std::endl;
 
 namespace NavBar {
     SDL_Texture *logo_tex;
@@ -82,7 +90,16 @@ namespace NavBar {
 
         StyleVar no_child_border{ImGuiStyleVar_ChildBorderSize, 0.0f};
         StyleVar item_spacing{ImGuiStyleVar_ItemSpacing, {0.0f, 12.0f}};
-        Child nav_bar{"NavBar", {160.0f, 0.0f}, ImGuiChildFlags_NavFlattened};
+        // auto viewport = ImGui::GetMainViewport();
+
+#ifdef DEBUG_BG_COLOR
+        StyleColor navbar_bg{ImGuiCol_ChildBg, {0.5f, 0.0f, 0.0f, 1.0f}};
+#endif
+        const float navbar_width = 160;
+
+        Child nav_bar{"NavBar", {navbar_width, 0},
+                      ImGuiChildFlags_NavFlattened,
+                      ImGuiWindowFlags_NoScrollbar};
         if (!nav_bar)
             return;
 
@@ -91,51 +108,67 @@ namespace NavBar {
         StyleVar no_frame_rounding{ImGuiStyleVar_FrameRounding, 0};
         StyleVar no_frame_padding{ImGuiStyleVar_FramePadding, {0, 0}};
 
-        ImGui::Image(logo_tex, ImVec2(152.4f, 138.0f));
+        ImGui::Image(logo_tex, {152.4f, 138.0f});
 
-        if (Child buttons_box{"ButtonsBox", {}, ImGuiChildFlags_NavFlattened}) {
+        const auto &style = ImGui::GetStyle();
+        const auto available = ImGui::GetContentRegionAvail();
+        const int num_buttons = 5;
+        const ImVec2 button_size = {148, 96};
+        const float total_empty =
+            available.y
+            - num_buttons * button_size.y
+            - style.SeparatorSize;
+        const float spacing = total_empty / num_buttons;
+
+        StyleVar button_spacing{ImGuiStyleVar_ItemSpacing, {0, spacing}};
+
+#ifdef DEBUG_BG_COLOR
+        StyleColor buttons_box_bg{ImGuiCol_ChildBg, {0.0f, 0.5f, 0.0f, 1.0f}};
+#endif
+        if (Child buttons_box{"ButtonsBox", {navbar_width, 0}, ImGuiChildFlags_NavFlattened}) {
             if (current_tab == Tab::home) {
-                ImGui::ImageButton("home_button_active", home_button_active_tex, ImVec2(148, 96));
+                ImGui::ImageButton("home_button_active", home_button_active_tex, button_size);
             }
             else {
-                // Implement the App::ImageButton overload in the App namespace to add the sound effect and rumble when clicked
-                if (ImGui::ImageButton("home_button_normal", home_button_normal_tex, ImVec2(148, 96))) {
+                // TODO: Implement the App::ImageButton overload in the App namespace to
+                // add the sound effect and rumble when clicked
+                if (ImGui::ImageButton("home_button_normal", home_button_normal_tex, button_size)) {
                     current_tab = Tab::home;
                     HomeScreen::force_refresh();
                 }
             }
 
             if (current_tab == Tab::manage_themes) {
-                ImGui::ImageButton("installed_button_active", manage_themes_button_active_tex, ImVec2(148, 96));
+                ImGui::ImageButton("installed_button_active", manage_themes_button_active_tex, button_size);
             }
             else {
-                if (ImGui::ImageButton("installed_button_normal", manage_themes_button_normal_tex, ImVec2(148, 96))) {
+                if (ImGui::ImageButton("installed_button_normal", manage_themes_button_normal_tex, button_size)) {
                     current_tab = Tab::manage_themes;
                 }
             }
 
             if (current_tab == Tab::themezer) {
-                ImGui::ImageButton("themezer_button_active", themezer_button_active_tex, ImVec2(148, 96));
+                ImGui::ImageButton("themezer_button_active", themezer_button_active_tex, button_size);
             }
             else {
-                if (ImGui::ImageButton("themezer_button_normal", themezer_button_normal_tex, ImVec2(148, 96))) {
+                if (ImGui::ImageButton("themezer_button_normal", themezer_button_normal_tex, button_size)) {
                     current_tab = Tab::themezer;
                     ManageThemesScreen::force_refresh();
                 }
             }
 
             if (current_tab == Tab::settings) {
-                ImGui::ImageButton("settings_button_active", settings_button_active_tex, ImVec2(148, 96));
+                ImGui::ImageButton("settings_button_active", settings_button_active_tex, button_size);
             }
             else {
-                if (ImGui::ImageButton("settings_button_normal", settings_button_normal_tex, ImVec2(148, 96))) {
+                if (ImGui::ImageButton("settings_button_normal", settings_button_normal_tex, button_size)) {
                     current_tab = Tab::settings;
                 }
             }
 
             ImGui::Separator();
 
-            if (ImGui::ImageButton("exit_button_normal", exit_button_normal_tex, ImVec2(148, 96))) {
+            if (ImGui::ImageButton("exit_button_normal", exit_button_normal_tex, button_size)) {
                 App::quit();
             }
         }

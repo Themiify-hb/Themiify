@@ -1,6 +1,6 @@
 /*
  * Themiify - A theme manager for the Nintendo Wii U
- * Copyright (C) 2026 Fangal-Airbag  
+ * Copyright (C) 2026 Fangal-Airbag
  * Copyright (C) 2026 AlphaCraft9658
  * Copyright (C) 2026  Daniel K. O. <dkosmari>
  *
@@ -12,13 +12,13 @@
 #include <wiiu-stdout.hpp>
 #include <wiiu-stderr.hpp>
 
-int main(int argc, char **argv)
+int main()
 {
 #ifdef __WIIU__
     wiiu_init_stdout();
     wiiu_init_stderr();
 #endif
-    
+
     App::initialize();
     App::run();
     App::finalize();

@@ -9,10 +9,10 @@
 
 #include "SettingsPopup.h"
 #include "../utils.h"
+#include "../App.h"
 
 #include <coreinit/systeminfo.h>
 #include <sysapp/title.h>
-#include <sysapp/launch.h>
 
 #include <string>
 #include <iostream>
@@ -330,9 +330,14 @@ namespace SettingsPopup {
         auto center = ImGui::GetMainViewport()->GetCenter();
         ImGui::SetNextWindowPos(center, ImGuiCond_Always, {0.5f, 0.5f});
 
-        PopupModal popup{popup_id, nullptr, ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_AlwaysAutoResize |
-                                            ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse |
-                                            ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar};
+        PopupModal popup{popup_id, nullptr,
+                         ImGuiWindowFlags_NoSavedSettings |
+                         ImGuiWindowFlags_AlwaysAutoResize |
+                         ImGuiWindowFlags_NoMove |
+                         ImGuiWindowFlags_NoScrollbar |
+                         ImGuiWindowFlags_NoScrollWithMouse |
+                         ImGuiWindowFlags_NoCollapse |
+                         ImGuiWindowFlags_NoTitleBar};
 
         if (!popup) {
             state = State::hidden;
@@ -345,17 +350,17 @@ namespace SettingsPopup {
             case State::stylmiiu_error: {
                 {
                     Font title_font{nullptr, 35};
-                    ImGui::AlignTextToFramePadding();
                     ImGui::Text("StyleMiiU Not Found!");
                 }
 
-                ImGui::Text("The StyleMiiU aroma plugin could not be found!\n\nFor your installed themes to work in the Wii U Menu " \
-                            "you will need to install\nthis plugin from either the Homebrew App Store or at:\n\n" \
+                ImGui::Text("The StyleMiiU aroma plugin could not be found!\n"
+                            "\n"
+                            "For your installed themes to work in the Wii U Menu you will need to install\n"
+                            "this plugin from either the Homebrew App Store or at:\n"
+                            "\n"
                             "github.com/Themiify-hb/StyleMiiU-Plugin/releases/latest");
 
-                ImGui::Spacing();
-
-                ImVec2 button_size{250.0f, 60.0f};
+                ImVec2 button_size{250, 0};
 
                 float start_x =
                     (ImGui::GetContentRegionAvail().x - button_size.x) * 0.5f;
@@ -364,28 +369,27 @@ namespace SettingsPopup {
                     ImGui::SetCursorPosX(ImGui::GetCursorPosX() + start_x);
 
                 if (ImGui::Button("Close Themiify", button_size)) {
-                    SYSLaunchMenu();
+                    App::quit();
                 }
-
-                ImGui::Spacing();
 
                 break;
             }
             case State::integrity_confirmation: {
                 {
                     Font title_font{nullptr, 35};
-                    ImGui::AlignTextToFramePadding();
                     ImGui::Text("Check Menu Integrity Confirmation");
                 }
 
-                ImGui::Text("Would you like to check the integrity of your Wii U Menu's\nfiles on your NAND to verify " \
-                            "whether they have been modified?\n\nIf your files have been modified, Themiify will " \
-                            "always fail to install themes\nuntil you either restore clean files to your NAND, or place clean files" \
-                            "\nin sd:/themiify/cache.\n\nPlease check the Theme Café Docs for more info.");
+                ImGui::Text("Would you like to check the integrity of your Wii U Menu's\n"
+                            "files on your NAND to verify whether they have been modified?\n"
+                            "\n"
+                            "If your files have been modified, Themiify will always fail to install themes\n"
+                            "until you either restore clean files to your NAND, or place clean files\n"
+                            "in sd:/themiify/cache.\n"
+                            "\n"
+                            "Please check the Theme Café Docs for more info.");
 
-                ImGui::Spacing();
-
-                ImVec2 button_size{250.0f, 60.0f};
+                ImVec2 button_size{250, 0};
 
                 float spacing = style.ItemSpacing.x;
                 float total_width = button_size.x * 2.0f + spacing;
@@ -419,21 +423,16 @@ namespace SettingsPopup {
                     state = State::checking_integrity;
                 }
 
-                ImGui::SameLine();
-
                 if (ImGui::Button("Close", button_size)) {
                     ImGui::CloseCurrentPopup();
                     state = State::hidden;
                 }
-
-                ImGui::Spacing();
 
                 break;
             }
             case State::checking_integrity: {
                 {
                     Font title_font{nullptr, 35};
-                    ImGui::AlignTextToFramePadding();
                     ImGui::Text("Checking...");
                 }
 
@@ -451,7 +450,6 @@ namespace SettingsPopup {
             case State::integrity_checked: {
                 {
                     Font title_font{nullptr, 35};
-                    ImGui::AlignTextToFramePadding();
                     ImGui::Text("Integrity Checked");
                 }
 
@@ -461,20 +459,16 @@ namespace SettingsPopup {
                 else {
                     ImGui::Text("The following files appear to be modified: ");
 
-                    ImGui::Spacing();
                     ImGui::Indent();
                     for (auto &file : modified_files) {
                         ImGui::Text("%s", file.c_str());
                     }
                     ImGui::Unindent();
-                    ImGui::Spacing();
 
                     ImGui::Text("Please consult the Theme Cafe docs for steps to restore your original files.");
                 }
 
-                ImGui::Spacing();
-
-                ImVec2 button_size{180.0f, 60.0f};
+                ImVec2 button_size{180, 0};
 
                 float start_x =
                     (ImGui::GetContentRegionAvail().x - button_size.x) * 0.5f;
@@ -487,28 +481,26 @@ namespace SettingsPopup {
                     state = State::hidden;
                 }
 
-                ImGui::Spacing();
-
                 break;
             }
             case State::dump_confirmation: {
                 {
                     Font title_font{nullptr, 35};
-                    ImGui::AlignTextToFramePadding();
                     ImGui::Text("Dump Menu Files Confirmation");
                 }
 
-                ImGui::Text("Would you like to dump the most common Wii U Menu files\nused in theme creation to your SD Card?" \
-                            "\n\nThe files dumped are: Men.pack, Men2.pack & cafe_barista_men.bfsar\n\nNote: By installing any " \
-                            "theme via Themiify, this will be done automatically.");
+                ImGui::Text("Would you like to dump the most common Wii U Menu files\n"
+                            "used in theme creation to your SD Card?\n"
+                            "\n"
+                            "The files dumped are: Men.pack, Men2.pack & cafe_barista_men.bfsar\n"
+                            "\n"
+                            "Note: By installing any theme via Themiify, this will be done automatically.");
 
-                ImGui::Spacing();
+                ImGui::Checkbox("Dump AllMessage.szs for all languages.\n"
+                                "Consult the Theme Café docs for more info on these files.",
+                                &dump_allmessage);
 
-                ImGui::Checkbox("Dump AllMessage.szs for all languages.\nConsult the Theme Café docs for more info on these files.", &dump_allmessage);
-
-                ImGui::Spacing();
-
-                ImVec2 button_size{210.0f, 60.0f};
+                ImVec2 button_size{210, 0};
 
                 float spacing = style.ItemSpacing.x;
                 float total_width = button_size.x * 2.0f + spacing;
@@ -560,20 +552,15 @@ namespace SettingsPopup {
                     state = State::dumping;
                 }
 
-                ImGui::SameLine();
-
                 if (ImGui::Button("Close", button_size)) {
                     ImGui::CloseCurrentPopup();
                     state = State::hidden;
                 }
 
-                ImGui::Spacing();
-
                 break;
             }
             case State::dumping: {
                 Font title_font{nullptr, 35};
-                ImGui::AlignTextToFramePadding();
                 ImGui::Text("Dumping...");
 
                 ImGui::Text("Please wait. Do not turn off your Wii U.");
@@ -590,44 +577,38 @@ namespace SettingsPopup {
             case State::dump_completed: {
                 {
                     Font title_font{nullptr, 35};
-                    ImGui::AlignTextToFramePadding();
                     ImGui::Text("Dump Completed");
                 }
 
-                ImGui::Text("The dump has been sucessfully completed\n\nYou can find your dumped files at:\n" \
+                ImGui::Text("The dump has been sucessfully completed\n"
+                            "\n"
+                            "You can find your dumped files at:\n"
                             "sd:/themiify/cache");
 
-                ImGui::Spacing();
-
-                ImVec2 button_size{180.0f, 60.0f};
+                ImVec2 button_size{180, 0};
 
                 float start_x =
                     (ImGui::GetContentRegionAvail().x - button_size.x) * 0.5f;
 
-                if (start_x > 0.0f)
+                if (start_x > 0)
                     ImGui::SetCursorPosX(ImGui::GetCursorPosX() + start_x);
 
                 if (ImGui::Button("Close", button_size)) {
                     ImGui::CloseCurrentPopup();
                     state = State::hidden;
                 }
-
-                ImGui::Spacing();
 
                 break;
             }
             case State::dump_error: {
                 {
                     Font title_font{nullptr, 35};
-                    ImGui::AlignTextToFramePadding();
                     ImGui::Text("Dump Error");
                 }
 
                 ImGui::Text("One or more files failed to dump correctly.");
 
-                ImGui::Spacing();
-
-                ImVec2 button_size{180.0f, 60.0f};
+                ImVec2 button_size{180, 0};
 
                 float start_x =
                     (ImGui::GetContentRegionAvail().x - button_size.x) * 0.5f;
@@ -640,30 +621,29 @@ namespace SettingsPopup {
                     state = State::hidden;
                 }
 
-                ImGui::Spacing();
-
                 break;
             }
             case State::cache_confirmation: {
                 {
                     Font title_font{nullptr, 35};
-                    ImGui::AlignTextToFramePadding();
                     ImGui::Text("Clear Cache Confirmation");
                 }
 
-                ImGui::Text("Would you like to delete your Themiify cache located at:\nsd:/themiify/cache ?" \
-                            "\n\nDoing so will delete all dumped Wii U Menu files");
+                ImGui::Text("Would you like to delete your Themiify cache located at:\n"
+                            "sd:/themiify/cache ?\n"
+                            "\n"
+                            "Doing so will delete all dumped Wii U Menu files");
 
                 ImGui::Checkbox("Delete theme thumbnails as well?", &delete_thumbnails);
 
-                ImVec2 button_size{210.0f, 60.0f};
+                ImVec2 button_size{210, 0};
 
                 float spacing = style.ItemSpacing.x;
                 float total_width = button_size.x * 2.0f + spacing;
 
                 float start_x = (ImGui::GetContentRegionAvail().x - total_width) * 0.5f;
 
-                if (start_x > 0.0f)
+                if (start_x > 0)
                     ImGui::SetCursorPosX(ImGui::GetCursorPosX() + start_x);
 
                 if (ImGui::Button("Clear Cache", button_size)) {
@@ -701,14 +681,13 @@ namespace SettingsPopup {
                     state = State::hidden;
                 }
 
-                ImGui::Spacing();
-
                 break;
             }
             case State::clearing_cache: {
-                Font title_font{nullptr, 35};
-                ImGui::AlignTextToFramePadding();
-                ImGui::Text("Clearing Cache...");
+                {
+                    Font title_font{nullptr, 35};
+                    ImGui::Text("Clearing Cache...");
+                }
 
                 ImGui::Text("Please wait.");
 
@@ -724,15 +703,12 @@ namespace SettingsPopup {
             case State::cache_cleared: {
                 {
                     Font title_font{nullptr, 35};
-                    ImGui::AlignTextToFramePadding();
                     ImGui::Text("Cache Cleared");
                 }
 
                 ImGui::Text("The Themiify cache has been succesfully cleared.");
 
-                ImGui::Spacing();
-
-                ImVec2 button_size{180.0f, 60.0f};
+                ImVec2 button_size{180, 0};
 
                 float start_x =
                     (ImGui::GetContentRegionAvail().x - button_size.x) * 0.5f;
@@ -744,23 +720,18 @@ namespace SettingsPopup {
                     ImGui::CloseCurrentPopup();
                     state = State::hidden;
                 }
-
-                ImGui::Spacing();
 
                 break;
             }
             case State::cache_error: {
                 {
                     Font title_font{nullptr, 35};
-                    ImGui::AlignTextToFramePadding();
                     ImGui::Text("Error Clearing Cache");
                 }
 
                 ImGui::Text("One or more files could not be removed from the cache");
 
-                ImGui::Spacing();
-
-                ImVec2 button_size{180.0f, 60.0f};
+                ImVec2 button_size{180, 0};
 
                 float start_x =
                     (ImGui::GetContentRegionAvail().x - button_size.x) * 0.5f;
@@ -772,8 +743,6 @@ namespace SettingsPopup {
                     ImGui::CloseCurrentPopup();
                     state = State::hidden;
                 }
-
-                ImGui::Spacing();
 
                 break;
             }
